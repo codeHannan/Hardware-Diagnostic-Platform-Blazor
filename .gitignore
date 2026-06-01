@@ -1,0 +1,11 @@
+# Visual Studio cache and tracking files
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Blazor WebAssembly specific build outputs
+wwwroot/dist/
