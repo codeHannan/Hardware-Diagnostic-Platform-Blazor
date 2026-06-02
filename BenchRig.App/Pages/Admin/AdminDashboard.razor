@@ -1,0 +1,37 @@
+@page "/admin"
+@inject AuthStateContainer Auth
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Admin - BenchRig</PageTitle>
+
+@if (!Auth.IsInitialized)
+{
+    <LoadingSpinner Text="Checking access..." />
+}
+else if (!Auth.IsAdmin)
+{
+    <div class="card"><h2>Access denied</h2><p class="muted">You need an administrator account to view this area.</p></div>
+}
+else
+{
+    <div class="page-intro">
+        <h1>Admin Console</h1>
+        <p>Moderate the community, respond to support tickets, and manage knowledge-base articles.</p>
+    </div>
+    <div class="page-grid">
+        <a class="tile" href="@AppRoutes.AdminTickets">
+            <span class="tile-icon">✚</span><span class="tile-name">Support Tickets</span>
+            <span class="tile-desc">Review and respond to user tickets.</span><span class="tile-go">Open →</span>
+        </a>
+        <a class="tile" href="@AppRoutes.AdminSolutions">
+            <span class="tile-icon">❏</span><span class="tile-name">Knowledge Base</span>
+            <span class="tile-desc">Create and publish solution articles.</span><span class="tile-go">Open →</span>
+        </a>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Auth.OnChange += StateHasChanged;
+    public void Dispose() => Auth.OnChange -= StateHasChanged;
+}

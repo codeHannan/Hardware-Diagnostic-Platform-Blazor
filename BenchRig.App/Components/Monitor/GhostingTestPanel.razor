@@ -1,0 +1,41 @@
+@inject MonitorTestOrchestrator Orch
+@implements IAsyncDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Ghosting / Motion</h3>
+        @if (!_running)
+        {
+            <button class="btn btn-primary" @onclick="Start">Start</button>
+        }
+        else
+        {
+            <button class="btn" @onclick="Stop">Stop</button>
+        }
+    </div>
+    <p class="muted">Track the moving block - smearing or trails behind it indicate pixel ghosting.</p>
+    <canvas id="ghost-canvas" width="640" height="160" class="ghost-canvas"></canvas>
+</div>
+
+@code {
+    private bool _running;
+
+    private async Task Start()
+    {
+        _running = true;
+        StateHasChanged();
+        await Task.Yield();
+        await Orch.StartGhostingAsync("ghost-canvas", 9);
+    }
+
+    private async Task Stop()
+    {
+        _running = false;
+        await Orch.StopGhostingAsync("ghost-canvas");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_running) { try { await Orch.StopGhostingAsync("ghost-canvas"); } catch { /* circuit gone */ } }
+    }
+}

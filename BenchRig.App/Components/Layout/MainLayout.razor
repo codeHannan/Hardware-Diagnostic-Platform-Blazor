@@ -1,0 +1,29 @@
+@inherits LayoutComponentBase
+@using BenchRig.App.Components.Chatbot
+@inject AuthService AuthSvc
+
+<div class="app-shell">
+    <Sidebar />
+    <div class="app-main">
+        <Topbar />
+        <main class="app-content">
+            @Body
+            <FooterBar />
+        </main>
+    </div>
+    <ChatBubble />
+</div>
+
+@code {
+    private bool _authInitialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_authInitialized)
+        {
+            _authInitialized = true;
+            try { await AuthSvc.InitializeAsync(); }
+            catch { /* Firebase unavailable - app still works for local diagnostics */ }
+        }
+    }
+}

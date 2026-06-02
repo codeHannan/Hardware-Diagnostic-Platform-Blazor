@@ -1,0 +1,26 @@
+@inject AudioTestOrchestrator Orch
+@inject AudioDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head"><h3>Playback &amp; Balance</h3></div>
+    <p class="muted">Play a 440 Hz test tone on a specific channel to confirm routing and stereo balance.</p>
+    <div class="stat-row">
+        <button class="btn" @onclick='() => Play("left")'>◄ Left</button>
+        <button class="btn" @onclick='() => Play("center")'>● Center</button>
+        <button class="btn" @onclick='() => Play("right")'>Right ►</button>
+        <button class="btn btn-ghost" @onclick="Stop">Stop</button>
+    </div>
+    @if (State.IsPlaying)
+    {
+        <p class="badge badge-ok pulse" style="margin-top:1rem">Playing tone</p>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private async Task Play(string channel) => await Orch.PlayToneAsync("", channel);
+    private async Task Stop() => await Orch.StopAsync();
+}

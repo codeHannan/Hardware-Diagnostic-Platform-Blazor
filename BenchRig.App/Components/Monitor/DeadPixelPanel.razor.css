@@ -1,0 +1,4 @@
+.swatches { display: flex; gap: .5rem; flex-wrap: wrap; }
+.swatch { width: 42px; height: 42px; border-radius: 8px; border: 2px solid var(--border); cursor: pointer; }
+.swatch.sel { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+.dp-overlay { position: fixed; inset: 0; z-index: 9999; cursor: pointer; }

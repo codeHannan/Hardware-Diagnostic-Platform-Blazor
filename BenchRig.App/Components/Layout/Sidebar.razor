@@ -1,0 +1,49 @@
+@inject AuthStateContainer Auth
+@implements IDisposable
+
+<aside class="sidebar">
+    <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-text">Bench<span class="brand-accent">Rig</span></span>
+    </div>
+
+    <nav class="nav">
+        <div class="nav-group">Overview</div>
+        <NavLink class="nav-item" href="@AppRoutes.Home" Match="NavLinkMatch.All">
+            <span class="ni-icon">▦</span> Dashboard
+        </NavLink>
+
+        <div class="nav-group">Diagnostics</div>
+        <NavLink class="nav-item" href="@AppRoutes.Network"><span class="ni-icon">◌</span> Network</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Mouse"><span class="ni-icon">▲</span> Mouse</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Keyboard"><span class="ni-icon">▥</span> Keyboard</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Audio"><span class="ni-icon">◈</span> Audio</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Monitor"><span class="ni-icon">▣</span> Monitor</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Compute"><span class="ni-icon">✦</span> Compute</NavLink>
+
+        <div class="nav-group">Workspace</div>
+        <NavLink class="nav-item" href="@AppRoutes.Report"><span class="ni-icon">▤</span> Report</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Forum"><span class="ni-icon">◇</span> Forum</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Solutions"><span class="ni-icon">❏</span> Solutions</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Support"><span class="ni-icon">✚</span> Support</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Donate"><span class="ni-icon">♥</span> Donate</NavLink>
+
+        @if (Auth.IsAdmin)
+        {
+            <div class="nav-group">Admin</div>
+            <NavLink class="nav-item" href="@AppRoutes.Admin" Match="NavLinkMatch.All"><span class="ni-icon">◉</span> Dashboard</NavLink>
+            <NavLink class="nav-item" href="@AppRoutes.AdminTickets"><span class="ni-icon">✚</span> Tickets</NavLink>
+            <NavLink class="nav-item" href="@AppRoutes.AdminSolutions"><span class="ni-icon">✎</span> Articles</NavLink>
+        }
+    </nav>
+
+    <div class="sidebar-foot">
+        <span class="badge">v1.0</span>
+        <span class="muted">.NET 10 · WASM</span>
+    </div>
+</aside>
+
+@code {
+    protected override void OnInitialized() => Auth.OnChange += StateHasChanged;
+    public void Dispose() => Auth.OnChange -= StateHasChanged;
+}

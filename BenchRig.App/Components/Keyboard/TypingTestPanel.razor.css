@@ -1,0 +1,5 @@
+.sample {
+    font-family: var(--mono); font-size: 1rem; color: var(--cream);
+    background: var(--bg-0); border-radius: var(--r-sm); padding: .9rem 1rem;
+    border: 1px solid var(--border); line-height: 1.6;
+}

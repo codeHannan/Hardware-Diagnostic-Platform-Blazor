@@ -1,0 +1,65 @@
+﻿@inject ChatbotState State
+@inject IJsChatbotBridge Bridge
+@implements IDisposable
+
+<div class="chat-window glass fade-in">
+    <div class="chat-header">
+        <span class="ch-dot"></span>
+        <span class="ch-title">BenchRig Assistant</span>
+        <span class="muted ch-model">gpt-oss-120b</span>
+    </div>
+
+    <div class="chat-body">
+        @if (State.Messages.Count == 0)
+        {
+            <div class="chat-empty">
+                Ask me about network, mouse, keyboard, audio, monitor, or CPU/GPU issues.
+            </div>
+        }
+        @foreach (var m in State.Messages)
+        {
+            <div class="msg @(m.Role == "user" ? "msg-user" : "msg-bot")">@m.Content</div>
+        }
+        @if (State.IsLoading)
+        {
+            <div class="msg msg-bot"><LoadingSpinner Text="Thinking..." Inline="true" Size="16" /></div>
+        }
+    </div>
+
+    <div class="chat-input">
+        <input class="input" @bind="_draft" @bind:event="oninput"
+               @onkeydown="OnKey" placeholder="Type your question..." disabled="@State.IsLoading" />
+        <button class="btn btn-primary" @onclick="Send" disabled="@(State.IsLoading || string.IsNullOrWhiteSpace(_draft))">Send</button>
+    </div>
+</div>
+
+@code {
+    private string _draft = "";
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_draft))
+            await Send();
+    }
+
+    private async Task Send()
+    {
+        var text = _draft.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+        _draft = "";
+        var history = State.Messages.ToList();
+        State.AddUserMessage(text);
+        try
+        {
+            var reply = await Bridge.SendMessageAsync(text, history);
+            State.AddAssistantMessage(reply);
+        }
+        catch (Exception ex)
+        {
+            State.SetError($"Assistant unavailable: {ex.Message}");
+        }
+    }
+}

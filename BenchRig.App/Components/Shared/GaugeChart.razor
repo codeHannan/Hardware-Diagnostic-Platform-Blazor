@@ -1,0 +1,26 @@
+﻿<div class="gauge">
+    <svg viewBox="0 0 200 120" width="100%">
+        <path class="gauge-track" d="M20,110 A80,80 0 0 1 180,110" />
+        <path class="gauge-fill" d="M20,110 A80,80 0 0 1 180,110"
+              stroke-dasharray="@_arc" stroke-dashoffset="@Offset" />
+    </svg>
+    <div class="gauge-readout">
+        <div class="gauge-value mono">@($"{Value:0.0}")</div>
+        <div class="gauge-unit">@Unit</div>
+    </div>
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <div class="gauge-caption">@Label</div>
+    }
+</div>
+
+@code {
+    [Parameter] public double Value { get; set; }
+    [Parameter] public double Max { get; set; } = 100;
+    [Parameter] public string Unit { get; set; } = "";
+    [Parameter] public string? Label { get; set; }
+
+    // Semicircle arc length for r=80
+    private const double _arc = Math.PI * 80;
+    private double Offset => _arc * (1 - Math.Clamp(Max <= 0 ? 0 : Value / Max, 0, 1));
+}

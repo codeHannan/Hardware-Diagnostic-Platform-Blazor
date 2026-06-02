@@ -1,0 +1,42 @@
+@inject NetworkDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head"><h3>Latency Detail</h3></div>
+
+    <div class="stat-row">
+        <MetricCard Label="Ping (idle)" Value="@Fmt(State.PingMs)" Unit="ms" />
+        <MetricCard Label="Jitter" Value="@Fmt(State.JitterMs)" Unit="ms" />
+        <MetricCard Label="Packet loss" Value="@Loss" Unit="%" />
+    </div>
+
+    @if (State.LatencyHistory.Count > 0)
+    {
+        <div class="spark">
+            @foreach (var l in State.LatencyHistory)
+            {
+                <span class="bar" style="height:@(BarHeight(l.PingMs))%" title="@l.PingMs.ToString("F0") ms"></span>
+            }
+        </div>
+        <p class="muted" style="margin-top:.6rem">Round-trip time across @State.LatencyHistory.Count samples.</p>
+    }
+    else
+    {
+        <p class="muted">Run a test to see per-sample latency.</p>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private static string Fmt(double v) => v <= 0 ? "—" : v.ToString("0.0");
+    private string Loss => State.StabilityResult?.PacketLossPercent.ToString("F0") ?? "—";
+
+    private double _max = 50;
+    private double BarHeight(double ping)
+    {
+        if (ping > _max) _max = ping;
+        return Math.Clamp(ping / Math.Max(1, _max) * 100, 4, 100);
+    }
+}

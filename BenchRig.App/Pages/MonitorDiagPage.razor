@@ -1,0 +1,16 @@
+@page "/monitor"
+@using BenchRig.App.Components.Monitor
+
+<PageTitle>Monitor Diagnostics - BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Monitor Diagnostics</h1>
+    <p>Hunt for dead pixels with fullscreen color fills, measure your refresh rate, and inspect motion clarity for ghosting.</p>
+</div>
+
+<div class="page-grid">
+    <DeadPixelPanel />
+    <RefreshRatePanel />
+</div>
+<div style="height:1.2rem"></div>
+<GhostingTestPanel />

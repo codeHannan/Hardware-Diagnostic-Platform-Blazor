@@ -1,0 +1,24 @@
+<div class="metric-card fade-in">
+    <div class="metric-head">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <span class="metric-icon">@Icon</span>
+        }
+        <span class="metric-label">@Label</span>
+    </div>
+    <div class="metric-value">
+        @Value<span class="metric-unit">@Unit</span>
+    </div>
+    @if (!string.IsNullOrEmpty(Sub))
+    {
+        <div class="metric-sub">@Sub</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "—";
+    [Parameter] public string Unit { get; set; } = "";
+    [Parameter] public string? Sub { get; set; }
+    [Parameter] public string? Icon { get; set; }
+}

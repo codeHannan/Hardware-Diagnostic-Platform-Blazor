@@ -1,0 +1,13 @@
+.post-card {
+    display: block; padding: 1.2rem 1.4rem; border-radius: var(--r-md);
+    background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
+    border: 1px solid var(--border); text-decoration: none;
+    transition: transform .12s ease, border-color .12s ease;
+}
+.post-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.pc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.pc-head h3 { margin: 0; font-size: 1.1rem; }
+.pc-rating { color: var(--warn); font-weight: 700; white-space: nowrap; }
+.pc-body { color: var(--text-1); font-size: .9rem; margin: .5rem 0; }
+.pc-meta { display: flex; justify-content: space-between; font-size: .8rem; color: var(--text-1); }
+.pc-tags { display: flex; gap: .4rem; margin-top: .7rem; flex-wrap: wrap; }

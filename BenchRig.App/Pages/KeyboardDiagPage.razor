@@ -1,0 +1,13 @@
+@page "/keyboard"
+@using BenchRig.App.Components.Keyboard
+
+<PageTitle>Keyboard Diagnostics - BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Keyboard Diagnostics</h1>
+    <p>Visualize key registration, detect chatter and ghosting via N-key rollover, and measure your typing speed.</p>
+</div>
+
+<KeyRegistrationPanel />
+<div style="height:1.2rem"></div>
+<TypingTestPanel />

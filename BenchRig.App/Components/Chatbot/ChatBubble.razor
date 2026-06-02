@@ -1,0 +1,17 @@
+@inject ChatbotState State
+@implements IDisposable
+
+<div class="chat-root">
+    @if (State.IsOpen)
+    {
+        <ChatWindow />
+    }
+    <button class="chat-toggle pulse" @onclick="State.ToggleOpen" title="Diagnostic Assistant">
+        @(State.IsOpen ? "✕" : "AI")
+    </button>
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

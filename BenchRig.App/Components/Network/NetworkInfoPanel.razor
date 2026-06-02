@@ -1,0 +1,106 @@
+@inject NetworkDiagState State
+@inject NetworkTestOrchestrator Orch
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Network Details</h3>
+        @if (State.NetworkInfo is not null && !State.NetworkInfo.IsPrecise)
+        {
+            <button class="btn btn-ghost" disabled="@_locating" @onclick="UsePrecise">
+                @(_locating ? "Locating…" : "Use precise location")
+            </button>
+        }
+    </div>
+
+    @if (State.NetworkInfo is { } info)
+    {
+        <div class="nd-group">Identity</div>
+        <dl class="kvs">
+            <dt>IP Address</dt><dd>@Dash(info.PublicIp)</dd>
+            @if (!string.IsNullOrWhiteSpace(info.Hostname))
+            {
+                <dt>Hostname</dt><dd>@info.Hostname</dd>
+            }
+            <dt>ISP / Org</dt><dd>@Dash(string.IsNullOrWhiteSpace(info.Org) ? info.Isp : info.Org)</dd>
+            @if (info.Asn > 0)
+            {
+                <dt>ASN</dt><dd>AS@(info.Asn)</dd>
+            }
+        </dl>
+
+        <div class="nd-group">Connection</div>
+        <dl class="kvs">
+            <dt>Type</dt><dd>@Dash(info.ConnType.ToUpperInvariant())</dd>
+            <dt>Est. downlink</dt><dd>@(info.Downlink > 0 ? $"{info.Downlink:0.#} Mbps" : "—")</dd>
+            <dt>Est. RTT</dt><dd>@(info.Rtt > 0 ? $"{info.Rtt:0} ms" : "—")</dd>
+            <dt>Protocol</dt><dd>@Dash(info.HttpProtocol)</dd>
+            <dt>DNS over HTTPS</dt><dd>@(info.DohCloudflare ? "Cloudflare reachable" : "—")</dd>
+            @if (!string.IsNullOrEmpty(info.Colo))
+            {
+                <dt>CF edge</dt><dd>@info.Colo</dd>
+            }
+        </dl>
+
+        <div class="nd-group">
+            Location
+            @if (info.IsPrecise)
+            {
+                <span class="badge badge-ok">precise</span>
+            }
+            else
+            {
+                <span class="badge">IP-based (approx.)</span>
+            }
+        </div>
+        <dl class="kvs">
+            <dt>City</dt><dd>@Dash(info.City)</dd>
+            <dt>Region</dt><dd>@Dash(info.Region)</dd>
+            <dt>Country</dt><dd>@Dash(info.Country)</dd>
+            @if (!string.IsNullOrWhiteSpace(info.Postal))
+            {
+                <dt>Postal</dt><dd>@info.Postal</dd>
+            }
+            <dt>Coordinates</dt><dd>@(info.HasLocation ? $"{info.Latitude:0.0000}, {info.Longitude:0.0000}" : "—")</dd>
+            <dt>Timezone</dt><dd>@Dash(info.Timezone)</dd>
+        </dl>
+
+        <div class="nd-group">Device</div>
+        <dl class="kvs">
+            <dt>Browser</dt><dd>@Dash(info.Browser)</dd>
+            <dt>OS</dt><dd>@Dash(info.Os)</dd>
+            <dt>Languages</dt><dd>@Dash(info.Languages)</dd>
+        </dl>
+
+        @if (!string.IsNullOrEmpty(_locateError))
+        {
+            <p class="validation-message">@_locateError</p>
+        }
+    }
+    else
+    {
+        <LoadingSpinner Text="Detecting your connection…" />
+    }
+</div>
+
+@code {
+    private bool _locating;
+    private string? _locateError;
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private static string Dash(string s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
+
+    private async Task UsePrecise()
+    {
+        _locating = true;
+        _locateError = null;
+        try
+        {
+            if (!await Orch.UsePreciseLocationAsync())
+                _locateError = "Location permission denied or unavailable.";
+        }
+        finally { _locating = false; }
+    }
+}

@@ -1,0 +1,11 @@
+.kb-toolbar { display: flex; gap: .8rem; margin-bottom: 1.4rem; }
+.kb-toolbar .input { flex: 1; }
+.kb-card {
+    text-align: left; cursor: pointer; font: inherit; color: inherit;
+    padding: 1.2rem 1.4rem; border-radius: var(--r-md);
+    background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
+    border: 1px solid var(--border); transition: transform .12s ease, border-color .12s ease;
+}
+.kb-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.kb-card h3 { margin: .6rem 0 .3rem; }
+@media (max-width: 700px) { .kb-toolbar { flex-direction: column; } .kb-toolbar .select { width: 100% !important; } }

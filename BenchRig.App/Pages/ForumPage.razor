@@ -1,0 +1,56 @@
+@page "/forum"
+@using BenchRig.App.Components.Forum
+@inject IJsFirestoreBridge Firestore
+@inject ForumState State
+@implements IDisposable
+
+<PageTitle>Community Forum - BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Community Forum</h1>
+    <p>Ask questions, share fixes, and compare diagnostic results with other users.</p>
+</div>
+
+<div class="forum-layout">
+    <div class="forum-feed">
+        @if (State.IsLoading)
+        {
+            <LoadingSpinner Text="Loading posts..." />
+        }
+        else if (State.Posts.Count == 0)
+        {
+            <div class="card"><p class="muted">No posts yet. Be the first to start a discussion!</p></div>
+        }
+        else
+        {
+            @foreach (var post in State.Posts)
+            {
+                <ForumPostCard Post="post" />
+            }
+        }
+    </div>
+    <div class="forum-side">
+        <NewPostEditor OnPosted="Load" />
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        State.SetLoading(true);
+        try
+        {
+            var posts = await Firestore.QueryCollectionAsync<ForumPost>(
+                FirestoreCollections.ForumPosts,
+                new QueryFilter { OrderByField = "createdAt", OrderDir = "desc", LimitCount = 50 });
+            State.SetPosts(posts);
+        }
+        catch { State.SetPosts([]); }
+        finally { State.SetLoading(false); }
+    }
+}

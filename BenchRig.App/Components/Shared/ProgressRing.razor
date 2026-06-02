@@ -1,0 +1,19 @@
+﻿<div class="progress-ring" style="width:@(Size)px;height:@(Size)px">
+    <svg viewBox="0 0 120 120" width="@Size" height="@Size">
+        <circle class="ring-track" cx="60" cy="60" r="52" />
+        <circle class="ring-fill" cx="60" cy="60" r="52"
+                stroke-dasharray="@_circumference"
+                stroke-dashoffset="@Offset" />
+    </svg>
+    <div class="ring-label">
+        <span class="ring-value">@($"{Percent:0}")</span><span class="ring-pct">%</span>
+    </div>
+</div>
+
+@code {
+    [Parameter] public double Percent { get; set; }
+    [Parameter] public int Size { get; set; } = 120;
+
+    private const double _circumference = 2 * Math.PI * 52;
+    private double Offset => _circumference * (1 - Math.Clamp(Percent, 0, 100) / 100.0);
+}

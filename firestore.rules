@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──
+    function isAuthenticated() { return request.auth != null; }
+    function isOwner(uid) { return isAuthenticated() && request.auth.uid == uid; }
+    function isAdmin() {
+      return isAuthenticated()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+    function isValidString(field, maxLen) {
+      return field is string && field.size() > 0 && field.size() <= maxLen;
+    }
+
+    // ── Users ──
+    match /users/{uid} {
+      allow read: if true;
+      allow create: if isOwner(uid)
+                    && request.resource.data.role == "user"
+                    && isValidString(request.resource.data.email, 320)
+                    && isValidString(request.resource.data.displayName, 100);
+      allow update: if (isOwner(uid) && (!("role" in request.resource.data)
+                        || request.resource.data.role == resource.data.role))
+                    || isAdmin();
+      allow delete: if false;
+    }
+
+    // ── Forum posts ──
+    match /forum_posts/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+                    && request.resource.data.authorUid == request.auth.uid
+                    && isValidString(request.resource.data.title, 200)
+                    && isValidString(request.resource.data.body, 10000);
+      allow update: if isOwner(resource.data.authorUid) || isAdmin();
+      allow delete: if isAdmin();
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isAuthenticated()
+                      && request.resource.data.authorUid == request.auth.uid
+                      && isValidString(request.resource.data.body, 2000)
+                      && request.resource.data.depth <= 3;
+        allow update: if isOwner(resource.data.authorUid);
+        allow delete: if isOwner(resource.data.authorUid) || isAdmin();
+      }
+
+      match /ratings/{userId} {
+        allow read: if true;
+        allow create, update: if isOwner(userId)
+                      && request.resource.data.stars >= 1
+                      && request.resource.data.stars <= 5;
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // ── Support tickets ──
+    match /support_tickets/{ticketId} {
+      allow read: if isOwner(resource.data.authorUid) || isAdmin();
+      allow create: if isAuthenticated()
+                    && request.resource.data.authorUid == request.auth.uid
+                    && request.resource.data.status == "open"
+                    && isValidString(request.resource.data.subject, 200)
+                    && isValidString(request.resource.data.body, 5000);
+      allow update: if isAdmin();
+      allow delete: if false;
+
+      match /responses/{responseId} {
+        allow read: if isAuthenticated()
+                    && (isAdmin()
+                        || get(/databases/$(database)/documents/support_tickets/$(ticketId)).data.authorUid == request.auth.uid);
+        allow create: if isAdmin()
+                      && request.resource.data.adminUid == request.auth.uid
+                      && isValidString(request.resource.data.body, 5000);
+        allow update, delete: if false;
+      }
+    }
+
+    // ── Solution articles (admin write) ──
+    match /solution_articles/{articleId} {
+      allow read: if true;
+      allow create: if isAdmin()
+                    && request.resource.data.authorUid == request.auth.uid
+                    && isValidString(request.resource.data.title, 200)
+                    && isValidString(request.resource.data.body, 50000);
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Diagnostic reports (user owned) ──
+    match /diagnostic_reports/{reportId} {
+      allow read: if isOwner(resource.data.ownerUid) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.ownerUid);
+    }
+
+    // ── App config (admin write) ──
+    match /app_config/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Default deny ──
+    match /{document=**} { allow read, write: if false; }
+  }
+}

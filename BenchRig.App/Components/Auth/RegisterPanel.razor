@@ -1,0 +1,53 @@
+@inject AuthService AuthSvc
+@inject NavigationManager Nav
+
+<div class="auth-card card">
+    <h2>Create your account</h2>
+    <p class="muted">Join the BenchRig community.</p>
+
+    <label>Display name</label>
+    <input class="input" @bind="_name" placeholder="Your name" />
+
+    <label>Email</label>
+    <input class="input" type="email" @bind="_email" placeholder="you@example.com" />
+
+    <label>Password</label>
+    <input class="input" type="password" @bind="_password" placeholder="At least 6 characters" />
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p class="validation-message">@_error</p>
+    }
+
+    <button class="btn btn-primary btn-block" disabled="@_busy" @onclick="Register">
+        @(_busy ? "Creating..." : "Create account")
+    </button>
+
+    <p class="auth-foot">Already registered? <a href="@AppRoutes.Login">Sign in</a></p>
+</div>
+
+@code {
+    private string _name = "";
+    private string _email = "";
+    private string _password = "";
+    private string? _error;
+    private bool _busy;
+
+    private async Task Register()
+    {
+        _error = null;
+        if (_password.Length < 6) { _error = "Password must be at least 6 characters."; return; }
+        _busy = true;
+        try
+        {
+            await AuthSvc.RegisterWithEmailAsync(_email, _password, _name);
+            Nav.NavigateTo(AppRoutes.Home);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message.Contains("email-already", StringComparison.OrdinalIgnoreCase)
+                ? "That email is already registered." : "Registration failed. Please try again.";
+        }
+        finally { _busy = false; }
+    }
+}

@@ -1,0 +1,8 @@
+.btn-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6rem; margin-top: .6rem; }
+.mbtn {
+    padding: 1.4rem .4rem; text-align: center; border-radius: var(--r-sm);
+    background: var(--bg-0); border: 1px solid var(--border);
+    font-size: .8rem; font-weight: 600; color: var(--text-2);
+    transition: all .08s ease; user-select: none;
+}
+.mbtn.lit { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--text-on-accent); border-color: transparent; box-shadow: 0 0 12px var(--glow); }

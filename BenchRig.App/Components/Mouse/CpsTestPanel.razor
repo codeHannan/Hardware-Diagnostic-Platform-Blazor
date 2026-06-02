@@ -1,0 +1,57 @@
+@inject MouseTestOrchestrator Orch
+@inject MouseDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Click Speed (CPS)</h3>
+        @if (!_active)
+        {
+            <button class="btn btn-primary" @onclick="Start">Start</button>
+        }
+        else
+        {
+            <button class="btn" @onclick="Stop">Stop</button>
+        }
+    </div>
+
+    <div id="cps-surface" class="test-surface">
+        @if (_active)
+        {
+            <div>
+                <div class="mono big">@State.LiveCps.ToString("F1")</div>
+                <span class="muted">clicks / sec - keep clicking!</span>
+            </div>
+        }
+        else if (State.Click is { } c)
+        {
+            <div>
+                <div class="mono big">@c.Cps.ToString("F1")</div>
+                <span class="muted">@c.TotalClicks clicks in @c.DurationSec.ToString("F1") s</span>
+            </div>
+        }
+        else
+        {
+            <span>Press Start, then click here as fast as you can.</span>
+        }
+    </div>
+</div>
+
+@code {
+    private bool _active;
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private async Task Start()
+    {
+        _active = true;
+        await Orch.StartCpsTestAsync("cps-surface");
+    }
+
+    private async Task Stop()
+    {
+        _active = false;
+        await Orch.StopCpsTestAsync("cps-surface");
+    }
+}

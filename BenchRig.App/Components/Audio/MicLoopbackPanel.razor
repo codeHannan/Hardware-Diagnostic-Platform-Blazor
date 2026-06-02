@@ -1,0 +1,69 @@
+@inject AudioTestOrchestrator Orch
+@inject AudioDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Microphone</h3>
+        @if (State.MicState?.IsCapturing != true)
+        {
+            <button class="btn btn-primary" @onclick="StartMic">Enable mic</button>
+        }
+        else
+        {
+            <button class="btn" @onclick="StopMic">Stop</button>
+        }
+    </div>
+
+    @if (State.MicState?.IsCapturing == true)
+    {
+        <div class="meter">
+            <div class="meter-fill" style="width:@MeterPercent%"></div>
+        </div>
+        <p class="muted">Input level: <span class="mono">@State.MicLevelDb.ToString("F0") dB</span></p>
+        <button class="btn btn-ghost" @onclick="Echo">Measure latency</button>
+        @if (State.Echo is { } e)
+        {
+            <span class="badge" style="margin-left:.6rem">Round-trip ~@e.RoundTripMs.ToString("F0") ms</span>
+        }
+    }
+    else
+    {
+        <p class="muted">Enable the mic to see a live input level meter.</p>
+    }
+</div>
+
+@code {
+    private System.Threading.Timer? _poll;
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+
+    private double MeterPercent => Math.Clamp((State.MicLevelDb + 60) / 60 * 100, 0, 100);
+
+    private async Task StartMic()
+    {
+        if (await Orch.StartMicAsync())
+            _poll = new System.Threading.Timer(_ => _ = Sample(), null, 0, 100);
+    }
+
+    private async Task Sample()
+    {
+        try { await Orch.SampleMicLevelAsync(); }
+        catch { /* device may have been revoked; ignore */ }
+    }
+
+    private async Task StopMic()
+    {
+        _poll?.Dispose();
+        _poll = null;
+        await Orch.StopMicAsync();
+    }
+
+    private async Task Echo() => await Orch.MeasureEchoAsync();
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+        _poll?.Dispose();
+    }
+}

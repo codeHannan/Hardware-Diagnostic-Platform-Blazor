@@ -1,0 +1,99 @@
+@page "/admin/tickets"
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+@implements IDisposable
+
+<PageTitle>Admin · Tickets - BenchRig</PageTitle>
+
+@if (!Auth.IsInitialized)
+{
+    <LoadingSpinner Text="Checking access..." />
+}
+else if (!Auth.IsAdmin)
+{
+    <div class="card"><h2>Access denied</h2></div>
+}
+else
+{
+    <div class="page-intro">
+        <h1>Support Tickets</h1>
+        <p>All user tickets. Update status and post responses.</p>
+    </div>
+
+    @if (_loading)
+    {
+        <LoadingSpinner Text="Loading tickets..." />
+    }
+    else
+    {
+        <table class="data-table">
+            <thead><tr><th>Subject</th><th>From</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var t in _tickets)
+                {
+                    <tr>
+                        <td style="font-family:inherit">@t.Subject</td>
+                        <td style="font-family:inherit">@t.AuthorName</td>
+                        <td>@t.Priority</td>
+                        <td><span class="badge">@t.Status.Replace('_', ' ')</span></td>
+                        <td>
+                            <select class="select" style="width:auto" value="@t.Status" @onchange="(e) => SetStatus(t, e)">
+                                <option value="open">open</option>
+                                <option value="in_progress">in progress</option>
+                                <option value="resolved">resolved</option>
+                                <option value="closed">closed</option>
+                            </select>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (_tickets.Count == 0)
+        {
+            <p class="muted">No tickets submitted yet.</p>
+        }
+    }
+}
+
+@code {
+    private sealed record TicketDto
+    {
+        public string Id { get; init; } = "";
+        public string Subject { get; init; } = "";
+        public string AuthorName { get; init; } = "";
+        public string Status { get; init; } = "open";
+        public string Priority { get; init; } = "medium";
+    }
+
+    private List<TicketDto> _tickets = new();
+    private bool _loading = true;
+
+    protected override void OnInitialized() => Auth.OnChange += StateHasChanged;
+    public void Dispose() => Auth.OnChange -= StateHasChanged;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            _tickets = await Firestore.QueryCollectionAsync<TicketDto>(
+                FirestoreCollections.SupportTickets,
+                new QueryFilter { OrderByField = "createdAt", OrderDir = "desc" });
+        }
+        catch { _tickets = new(); }
+        finally { _loading = false; }
+    }
+
+    private async Task SetStatus(TicketDto t, ChangeEventArgs e)
+    {
+        var status = e.Value?.ToString() ?? "open";
+        try
+        {
+            await Firestore.UpdateDocumentAsync(FirestoreCollections.Ticket(t.Id), new { status });
+            await Load();
+        }
+        catch { /* surfaced by reload */ }
+    }
+}

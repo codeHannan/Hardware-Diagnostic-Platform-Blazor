@@ -1,0 +1,90 @@
+@page "/solutions"
+@inject IJsFirestoreBridge Firestore
+
+<PageTitle>Knowledge Base - BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Knowledge Base</h1>
+    <p>Curated troubleshooting guides for common hardware and network problems.</p>
+</div>
+
+<div class="kb-toolbar">
+    <input class="input" @bind="_search" @bind:event="oninput" placeholder="Search articles..." />
+    <select class="select" @bind="_category" style="width:auto">
+        <option value="">All categories</option>
+        @foreach (var c in _categories)
+        {
+            <option value="@c">@c</option>
+        }
+    </select>
+</div>
+
+@if (_loading)
+{
+    <LoadingSpinner Text="Loading articles..." />
+}
+else if (_selected is { } article)
+{
+    <a class="btn btn-ghost" @onclick="() => _selected = null">← Back to list</a>
+    <article class="card fade-in" style="margin-top:1rem">
+        <span class="badge">@article.Category</span>
+        <h1>@article.Title</h1>
+        <MarkdownRenderer Content="@article.Body" />
+    </article>
+}
+else if (Filtered.Count == 0)
+{
+    <div class="card"><p class="muted">No published articles match your search yet.</p></div>
+}
+else
+{
+    <div class="page-grid">
+        @foreach (var a in Filtered)
+        {
+            <button class="kb-card" @onclick="() => _selected = a">
+                <span class="badge">@a.Category</span>
+                <h3>@a.Title</h3>
+                <p class="muted">@Preview(a.Body)</p>
+            </button>
+        }
+    </div>
+}
+
+@code {
+    private sealed record ArticleDto
+    {
+        public string Id { get; init; } = "";
+        public string Title { get; init; } = "";
+        public string Body { get; init; } = "";
+        public string Category { get; init; } = "general";
+        public bool IsPublished { get; init; }
+    }
+
+    private List<ArticleDto> _articles = new();
+    private ArticleDto? _selected;
+    private string _search = "";
+    private string _category = "";
+    private bool _loading = true;
+
+    private readonly string[] _categories = ["network", "mouse", "keyboard", "audio", "monitor", "compute", "general"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var all = await Firestore.QueryCollectionAsync<ArticleDto>(FirestoreCollections.SolutionArticles);
+            _articles = all.Where(a => a.IsPublished).ToList();
+        }
+        catch { _articles = new(); }
+        finally { _loading = false; }
+    }
+
+    private List<ArticleDto> Filtered => _articles
+        .Where(a => string.IsNullOrEmpty(_category) || a.Category == _category)
+        .Where(a => string.IsNullOrWhiteSpace(_search)
+                    || a.Title.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                    || a.Body.Contains(_search, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private static string Preview(string body) => body.Length > 120 ? body[..120] + "..." : body;
+}

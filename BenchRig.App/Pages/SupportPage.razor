@@ -1,0 +1,138 @@
+@page "/support"
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+@implements IDisposable
+
+<PageTitle>Support - BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Support</h1>
+    <p>Open a ticket and our team will get back to you. You can track the status of your tickets here.</p>
+</div>
+
+@if (!Auth.IsLoggedIn)
+{
+    <div class="card"><p class="muted">Please <a href="@AppRoutes.Login">sign in</a> to submit and view support tickets.</p></div>
+}
+else
+{
+    <div class="page-grid">
+        <div class="card">
+            <div class="panel-head"><h3>New ticket</h3></div>
+            <label>Subject</label>
+            <input class="input" @bind="_subject" maxlength="200" />
+            <label style="margin-top:.8rem;display:block">Priority</label>
+            <select class="select" @bind="_priority">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+            </select>
+            <label style="margin-top:.8rem;display:block">Describe your issue</label>
+            <textarea class="textarea" @bind="_body" maxlength="5000"></textarea>
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <p class="validation-message">@_error</p>
+            }
+            <button class="btn btn-primary" style="margin-top:1rem" disabled="@_busy" @onclick="Submit">
+                @(_busy ? "Submitting..." : "Submit ticket")
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="panel-head"><h3>Your tickets</h3></div>
+            @if (_tickets.Count == 0)
+            {
+                <p class="muted">No tickets yet.</p>
+            }
+            else
+            {
+                <table class="data-table">
+                    <thead><tr><th>Subject</th><th>Priority</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var t in _tickets)
+                        {
+                            <tr>
+                                <td style="font-family:inherit">@t.Subject</td>
+                                <td>@t.Priority</td>
+                                <td><span class="badge @StatusClass(t.Status)">@t.Status.Replace('_', ' ')</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private sealed record TicketDto
+    {
+        public string Id { get; init; } = "";
+        public string Subject { get; init; } = "";
+        public string Body { get; init; } = "";
+        public string Status { get; init; } = "open";
+        public string Priority { get; init; } = "medium";
+    }
+
+    private List<TicketDto> _tickets = new();
+    private string _subject = "";
+    private string _body = "";
+    private string _priority = "medium";
+    private string? _error;
+    private bool _busy;
+
+    protected override void OnInitialized() => Auth.OnChange += OnAuth;
+    public void Dispose() => Auth.OnChange -= OnAuth;
+
+    private void OnAuth() => InvokeAsync(async () => { await Load(); StateHasChanged(); });
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        if (Auth.CurrentUser is null) { _tickets = new(); return; }
+        try
+        {
+            _tickets = await Firestore.QueryCollectionAsync<TicketDto>(
+                FirestoreCollections.SupportTickets,
+                new QueryFilter { WhereField = "authorUid", WhereOp = "==", WhereValue = Auth.CurrentUser.Uid });
+        }
+        catch { _tickets = new(); }
+    }
+
+    private async Task Submit()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_subject) || string.IsNullOrWhiteSpace(_body))
+        {
+            _error = "Subject and description are required.";
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var user = Auth.CurrentUser!;
+            await Firestore.AddDocumentAsync(FirestoreCollections.SupportTickets, new
+            {
+                subject = _subject.Trim(),
+                body = _body.Trim(),
+                authorUid = user.Uid,
+                authorName = user.DisplayName,
+                status = "open",
+                priority = _priority,
+                updatedAt = DateTime.UtcNow.ToString("o"),
+            });
+            _subject = _body = ""; _priority = "medium";
+            await Load();
+        }
+        catch (Exception ex) { _error = $"Could not submit: {ex.Message}"; }
+        finally { _busy = false; }
+    }
+
+    private static string StatusClass(string status) => status switch
+    {
+        "resolved" or "closed" => "badge-ok",
+        "in_progress" => "badge-warn",
+        _ => "",
+    };
+}

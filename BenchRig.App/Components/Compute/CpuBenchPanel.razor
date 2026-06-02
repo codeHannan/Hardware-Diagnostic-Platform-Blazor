@@ -1,0 +1,44 @@
+@inject ComputeTestOrchestrator Orch
+@inject ComputeDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>CPU Benchmark</h3>
+        <div class="stat-row">
+            <select class="select" style="width:auto" @bind="_threads" disabled="@State.IsRunning">
+                @for (int t = 1; t <= 16; t *= 2)
+                {
+                    <option value="@t">@t thread(s)</option>
+                }
+            </select>
+            <button class="btn btn-primary" disabled="@State.IsRunning" @onclick="Run">Run</button>
+        </div>
+    </div>
+
+    @if (State.IsRunning)
+    {
+        <div class="centered"><ProgressRing Percent="State.ProgressPercent" /></div>
+    }
+    else if (State.Cpu is { } c)
+    {
+        <div class="stat-row">
+            <MetricCard Label="Score" Value="@c.Score.ToString("F0")" Icon="✦" />
+            <MetricCard Label="Throughput" Value="@((c.OpsPerSec / 1_000_000).ToString("F1"))" Unit="M ops/s" />
+            <MetricCard Label="Threads" Value="@c.ThreadsUsed.ToString()" />
+        </div>
+    }
+    else
+    {
+        <p class="muted">Runs a multi-threaded prime-sieve workload in Web Workers for @DiagnosticDefaults.CpuBenchDurationSec s.</p>
+    }
+</div>
+
+@code {
+    private int _threads = DiagnosticDefaults.DefaultCpuThreads;
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private async Task Run() => await Orch.RunCpuAsync(_threads);
+}

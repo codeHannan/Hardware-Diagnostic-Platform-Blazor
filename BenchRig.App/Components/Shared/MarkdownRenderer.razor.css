@@ -1,0 +1,7 @@
+.markdown { color: var(--text-1); line-height: 1.65; }
+.markdown ::deep h2, .markdown ::deep h3, .markdown ::deep h4 { color: var(--cream); margin: 1rem 0 .5rem; }
+.markdown ::deep p { margin: .6rem 0; }
+.markdown ::deep code { font-family: var(--mono); background: var(--bg-0); padding: .1rem .35rem; border-radius: 4px; color: var(--accent-strong); }
+.markdown ::deep pre { background: var(--bg-0); padding: 1rem; border-radius: var(--r-sm); overflow-x: auto; border: 1px solid var(--border); }
+.markdown ::deep pre code { background: none; padding: 0; color: var(--text-0); }
+.markdown ::deep a { color: var(--accent-strong); }

@@ -1,0 +1,159 @@
+@page "/admin/solutions"
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+@implements IDisposable
+
+<PageTitle>Admin · Articles - BenchRig</PageTitle>
+
+@if (!Auth.IsInitialized)
+{
+    <LoadingSpinner Text="Checking access..." />
+}
+else if (!Auth.IsAdmin)
+{
+    <div class="card"><h2>Access denied</h2></div>
+}
+else
+{
+    <div class="page-intro">
+        <h1>Knowledge Base Editor</h1>
+        <p>Create, publish, and manage solution articles.</p>
+    </div>
+
+    <div class="forum-layout">
+        <div class="forum-feed">
+            @if (_articles.Count == 0)
+            {
+                <div class="card"><p class="muted">No articles yet.</p></div>
+            }
+            else
+            {
+                @foreach (var a in _articles)
+                {
+                    <div class="card">
+                        <div class="panel-head">
+                            <div>
+                                <span class="badge">@a.Category</span>
+                                <span class="badge @(a.IsPublished ? "badge-ok" : "")">@(a.IsPublished ? "published" : "draft")</span>
+                                <h3 style="margin-top:.4rem">@a.Title</h3>
+                            </div>
+                            <div class="stat-row">
+                                <button class="btn btn-ghost" @onclick="() => Edit(a)">Edit</button>
+                                <button class="btn btn-ghost" @onclick="() => TogglePublish(a)">@(a.IsPublished ? "Unpublish" : "Publish")</button>
+                                <button class="btn" @onclick="() => Delete(a)">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="forum-side">
+            <div class="card">
+                <div class="panel-head"><h3>@(_editId is null ? "New article" : "Edit article")</h3></div>
+                <label>Title</label>
+                <input class="input" @bind="_title" maxlength="200" />
+                <label style="margin-top:.7rem;display:block">Category</label>
+                <select class="select" @bind="_category">
+                    @foreach (var c in _categories) { <option value="@c">@c</option> }
+                </select>
+                <label style="margin-top:.7rem;display:block">Body (markdown)</label>
+                <textarea class="textarea" style="min-height:180px" @bind="_body"></textarea>
+                <div class="stat-row" style="margin-top:1rem">
+                    <button class="btn btn-primary" disabled="@_busy" @onclick="Save">@(_editId is null ? "Create" : "Save")</button>
+                    @if (_editId is not null)
+                    {
+                        <button class="btn btn-ghost" @onclick="ResetForm">Cancel</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private sealed record ArticleDto
+    {
+        public string Id { get; init; } = "";
+        public string Title { get; init; } = "";
+        public string Body { get; init; } = "";
+        public string Category { get; init; } = "general";
+        public bool IsPublished { get; init; }
+    }
+
+    private List<ArticleDto> _articles = new();
+    private readonly string[] _categories = ["network", "mouse", "keyboard", "audio", "monitor", "compute", "general"];
+
+    private string? _editId;
+    private string _title = "";
+    private string _body = "";
+    private string _category = "general";
+    private bool _busy;
+
+    protected override void OnInitialized() => Auth.OnChange += StateHasChanged;
+    public void Dispose() => Auth.OnChange -= StateHasChanged;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        try { _articles = await Firestore.QueryCollectionAsync<ArticleDto>(FirestoreCollections.SolutionArticles); }
+        catch { _articles = new(); }
+    }
+
+    private void Edit(ArticleDto a)
+    {
+        _editId = a.Id; _title = a.Title; _body = a.Body; _category = a.Category;
+    }
+
+    private void ResetForm()
+    {
+        _editId = null; _title = _body = ""; _category = "general";
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_body)) return;
+        _busy = true;
+        try
+        {
+            var user = Auth.CurrentUser!;
+            if (_editId is null)
+            {
+                await Firestore.AddDocumentAsync(FirestoreCollections.SolutionArticles, new
+                {
+                    title = _title.Trim(), body = _body.Trim(), category = _category,
+                    tags = Array.Empty<string>(), authorUid = user.Uid, authorName = user.DisplayName,
+                    isPublished = false, updatedAt = DateTime.UtcNow.ToString("o"),
+                });
+            }
+            else
+            {
+                await Firestore.UpdateDocumentAsync(FirestoreCollections.Article(_editId), new
+                {
+                    title = _title.Trim(), body = _body.Trim(), category = _category,
+                });
+            }
+            ResetForm();
+            await Load();
+        }
+        catch { /* surfaced by reload */ }
+        finally { _busy = false; }
+    }
+
+    private async Task TogglePublish(ArticleDto a)
+    {
+        try
+        {
+            await Firestore.UpdateDocumentAsync(FirestoreCollections.Article(a.Id), new { isPublished = !a.IsPublished });
+            await Load();
+        }
+        catch { /* noop */ }
+    }
+
+    private async Task Delete(ArticleDto a)
+    {
+        try { await Firestore.DeleteDocumentAsync(FirestoreCollections.Article(a.Id)); await Load(); }
+        catch { /* noop */ }
+    }
+}

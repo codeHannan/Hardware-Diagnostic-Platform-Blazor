@@ -1,0 +1,121 @@
+@page "/forum/{PostId}"
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+@inject NavigationManager Nav
+
+<PageTitle>Forum Post - BenchRig</PageTitle>
+
+<a class="btn btn-ghost" href="@AppRoutes.Forum">← Back to forum</a>
+
+@if (_loading)
+{
+    <LoadingSpinner Text="Loading post..." />
+}
+else if (_post is null)
+{
+    <div class="card"><p class="muted">This post could not be found.</p></div>
+}
+else
+{
+    <article class="card fade-in" style="margin-top:1rem">
+        <h1>@_post.Title</h1>
+        <p class="muted">by @_post.AuthorName · @_post.CreatedAt.ToLocalTime().ToString("g")</p>
+        <MarkdownRenderer Content="@_post.Body" />
+        <div class="rating-row">
+            <span class="muted">Rate this:</span>
+            @for (int s = 1; s <= 5; s++)
+            {
+                var star = s;
+                <button class="star-btn @(_myRating >= star ? "on" : "")"
+                        disabled="@(!Auth.IsLoggedIn)" @onclick="() => Rate(star)">★</button>
+            }
+            <span class="muted">@_post.AvgRating.ToString("0.0") (@_post.RatingCount)</span>
+        </div>
+    </article>
+
+    <section style="margin-top:1.4rem">
+        <h2 class="section-title">@_comments.Count Comments</h2>
+
+        @if (Auth.IsLoggedIn)
+        {
+            <div class="card" style="margin-bottom:1rem">
+                <textarea class="textarea" @bind="_newComment" placeholder="Add a comment..."></textarea>
+                <button class="btn btn-primary" style="margin-top:.7rem" disabled="@_posting" @onclick="AddComment">Comment</button>
+            </div>
+        }
+        else
+        {
+            <p class="muted"><a href="@AppRoutes.Login">Sign in</a> to join the discussion.</p>
+        }
+
+        @foreach (var c in _comments)
+        {
+            <div class="comment">
+                <div class="comment-head"><b>@c.AuthorName</b> <span class="muted">@c.CreatedAt.ToLocalTime().ToString("g")</span></div>
+                <p>@c.Body</p>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public string PostId { get; set; } = "";
+
+    private ForumPost? _post;
+    private List<ForumComment> _comments = new();
+    private string _newComment = "";
+    private int _myRating;
+    private bool _loading = true;
+    private bool _posting;
+
+    protected override async Task OnParametersSetAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            _post = await Firestore.GetDocumentAsync<ForumPost>(FirestoreCollections.ForumPost(PostId));
+            _comments = await Firestore.QueryCollectionAsync<ForumComment>(
+                FirestoreCollections.CommentsOf(PostId),
+                new QueryFilter { OrderByField = "createdAt", OrderDir = "asc" });
+        }
+        catch { _post = null; }
+        finally { _loading = false; }
+    }
+
+    private async Task AddComment()
+    {
+        if (string.IsNullOrWhiteSpace(_newComment) || Auth.CurrentUser is null) return;
+        _posting = true;
+        try
+        {
+            var user = Auth.CurrentUser;
+            await Firestore.AddDocumentAsync(FirestoreCollections.CommentsOf(PostId), new
+            {
+                body = _newComment.Trim(),
+                authorUid = user.Uid,
+                authorName = user.DisplayName,
+                parentCommentId = (string?)null,
+                depth = 0,
+            });
+            _newComment = "";
+            await Load();
+        }
+        catch { /* surfaced by reload */ }
+        finally { _posting = false; }
+    }
+
+    private async Task Rate(int stars)
+    {
+        if (Auth.CurrentUser is null) return;
+        _myRating = stars;
+        try
+        {
+            await Firestore.SetDocumentAsync(
+                $"{FirestoreCollections.RatingsOf(PostId)}/{Auth.CurrentUser.Uid}",
+                new { stars, createdAt = DateTime.UtcNow.ToString("o") });
+        }
+        catch { /* best effort */ }
+    }
+}

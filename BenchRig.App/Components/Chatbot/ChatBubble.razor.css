@@ -1,0 +1,10 @@
+﻿.chat-root { position: fixed; bottom: 1.4rem; right: 1.4rem; z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: .8rem; }
+.chat-toggle {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: none; cursor: pointer; font-size: 1.4rem;
+    background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+    color: var(--text-on-accent);
+    box-shadow: 0 8px 24px var(--glow);
+    transition: transform .12s ease;
+}
+.chat-toggle:hover { transform: scale(1.06); }

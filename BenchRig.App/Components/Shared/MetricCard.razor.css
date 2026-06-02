@@ -1,0 +1,34 @@
+﻿.metric-card {
+    background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 1.1rem 1.25rem;
+    box-shadow: var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+    transition: transform .15s ease, border-color .15s ease;
+}
+.metric-card::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    opacity: .7;
+}
+.metric-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+.metric-head { display: flex; align-items: center; gap: .5rem; color: var(--text-2); }
+.metric-icon { font-size: 1.05rem; }
+.metric-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+
+.metric-value {
+    margin-top: .55rem;
+    font-size: 2rem;
+    font-weight: 750;
+    color: var(--cream);
+    line-height: 1;
+    font-family: var(--mono);
+}
+.metric-unit { font-size: .85rem; color: var(--text-2); margin-left: .3rem; font-weight: 600; }
+.metric-sub { margin-top: .4rem; font-size: .8rem; color: var(--text-1); }

@@ -1,0 +1,13 @@
+﻿<div class="spinner-wrap @(Inline ? "inline" : "")">
+    <span class="spinner" style="width:@(Size)px;height:@(Size)px"></span>
+    @if (!string.IsNullOrEmpty(Text))
+    {
+        <span class="spinner-text">@Text</span>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public int Size { get; set; } = 22;
+    [Parameter] public bool Inline { get; set; }
+}

@@ -1,0 +1,60 @@
+@inject KeyboardTestOrchestrator Orch
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Typing Test</h3>
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+    </div>
+
+    <p class="sample">@_sample</p>
+    <textarea class="textarea" value="@_typed" @oninput="OnInput"
+              placeholder="Start typing the sentence above..."></textarea>
+
+    @if (_result is { } r)
+    {
+        <div class="stat-row" style="margin-top:1rem">
+            <MetricCard Label="Speed" Value="@r.Wpm.ToString("F0")" Unit="WPM" />
+            <MetricCard Label="Raw" Value="@r.RawWpm.ToString("F0")" Unit="WPM" />
+            <MetricCard Label="Accuracy" Value="@r.AccuracyPercent.ToString("F0")" Unit="%" />
+        </div>
+    }
+    else if (_startedAt is not null)
+    {
+        <p class="muted">Typing... finish the sentence to see your score.</p>
+    }
+</div>
+
+@code {
+    private const string _sample = "The quick brown fox jumps over the lazy dog while benchmarking every key.";
+    private string _typed = "";
+    private DateTime? _startedAt;
+    private TypingTestResult? _result;
+
+    private void OnInput(ChangeEventArgs e)
+    {
+        _typed = e.Value?.ToString() ?? "";
+        _startedAt ??= DateTime.UtcNow;
+        if (_typed.Length >= _sample.Length)
+            Finish();
+    }
+
+    private void Finish()
+    {
+        if (_startedAt is null) return;
+        double dur = Math.Max(0.5, (DateTime.UtcNow - _startedAt.Value).TotalSeconds);
+        int correct = 0;
+        for (int i = 0; i < Math.Min(_typed.Length, _sample.Length); i++)
+            if (_typed[i] == _sample[i]) correct++;
+        _result = Orch.ComputeTyping(correct, _typed.Length, dur);
+    }
+
+    private void Reset()
+    {
+        _typed = "";
+        _startedAt = null;
+        _result = null;
+    }
+
+    public void Dispose() { }
+}

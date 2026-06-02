@@ -1,0 +1,45 @@
+@inject MouseTestOrchestrator Orch
+@inject MouseDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Polling Rate</h3>
+        @if (!_active)
+        {
+            <button class="btn btn-primary" @onclick="Start">Start</button>
+        }
+        else
+        {
+            <button class="btn" @onclick="Stop">Stop</button>
+        }
+    </div>
+
+    <div id="poll-surface" class="test-surface">
+        @if (_active)
+        {
+            <span>Move your mouse rapidly across this area...</span>
+        }
+        else if (State.Polling is { } p)
+        {
+            <div>
+                <div class="mono big">@p.Hz.ToString("F0") <span class="muted" style="font-size:1rem">Hz</span></div>
+                <span class="muted">@p.SampleCount samples · ±@p.DeviationHz.ToString("F0") Hz</span>
+            </div>
+        }
+        else
+        {
+            <span>Press Start, then wiggle your mouse here for a few seconds.</span>
+        }
+    </div>
+</div>
+
+@code {
+    private bool _active;
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private async Task Start() { _active = true; await Orch.StartPollingTestAsync("poll-surface"); }
+    private async Task Stop() { _active = false; await Orch.StopPollingTestAsync("poll-surface"); }
+}

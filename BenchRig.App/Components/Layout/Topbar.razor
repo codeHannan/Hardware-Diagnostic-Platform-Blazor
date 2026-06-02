@@ -1,0 +1,89 @@
+﻿@inject AuthStateContainer Auth
+@inject NavigationManager Nav
+@inject AuthService AuthSvc
+@implements IDisposable
+
+<header class="topbar">
+    <div class="tb-title">
+        <h2>@PageTitle</h2>
+        <span class="muted tb-sub">Hardware &amp; Network Diagnostic Suite</span>
+    </div>
+
+    <div class="tb-actions">
+        @if (Auth.IsLoggedIn)
+        {
+            <div class="user-chip">
+                <span class="avatar">@Initials</span>
+                <div class="user-meta">
+                    <span class="user-name">@Auth.CurrentUser!.DisplayName</span>
+                    @if (Auth.IsAdmin)
+                    {
+                        <span class="badge badge-ok">Admin</span>
+                    }
+                </div>
+            </div>
+            <button class="btn btn-ghost" @onclick="SignOut">Sign out</button>
+        }
+        else
+        {
+            <button class="btn btn-ghost" @onclick="@(() => Nav.NavigateTo(AppRoutes.Login))">Sign in</button>
+            <button class="btn btn-primary" @onclick="@(() => Nav.NavigateTo(AppRoutes.Register))">Register</button>
+        }
+    </div>
+</header>
+
+@code {
+    private string PageTitle => TitleForPath(new Uri(Nav.Uri).AbsolutePath.TrimEnd('/'));
+
+    private static string TitleForPath(string path) => path switch
+    {
+        "" or "/" => "Dashboard",
+        "/network" => "Network Diagnostics",
+        "/mouse" => "Mouse Diagnostics",
+        "/keyboard" => "Keyboard Diagnostics",
+        "/audio" => "Audio Diagnostics",
+        "/monitor" => "Monitor Diagnostics",
+        "/compute" => "Compute Benchmarks",
+        "/report" => "Diagnostic Report",
+        "/forum" => "Community Forum",
+        "/solutions" => "Knowledge Base",
+        "/support" => "Support",
+        "/donate" => "Donate",
+        "/login" => "Sign In",
+        "/register" => "Create Account",
+        var p when p.StartsWith("/admin") => "Admin",
+        var p when p.StartsWith("/forum/") => "Forum Post",
+        _ => "BenchRig",
+    };
+
+    private string Initials
+    {
+        get
+        {
+            var n = Auth.CurrentUser?.DisplayName;
+            if (string.IsNullOrWhiteSpace(n)) return "?";
+            var parts = n.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length >= 2 ? $"{parts[0][0]}{parts[1][0]}".ToUpper() : n[..1].ToUpper();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Auth.OnChange += StateHasChanged;
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => StateHasChanged();
+
+    public void Dispose()
+    {
+        Auth.OnChange -= StateHasChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+
+    private async Task SignOut()
+    {
+        await AuthSvc.SignOutAsync();
+        Nav.NavigateTo(AppRoutes.Home);
+    }
+}

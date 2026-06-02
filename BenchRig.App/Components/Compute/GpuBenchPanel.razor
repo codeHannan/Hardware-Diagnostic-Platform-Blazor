@@ -1,0 +1,35 @@
+@inject ComputeTestOrchestrator Orch
+@inject ComputeDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>GPU Benchmark</h3>
+        <button class="btn btn-primary" disabled="@State.IsRunning" @onclick="Run">Run</button>
+    </div>
+
+    <canvas id="gpu-canvas" width="320" height="120" class="gpu-canvas"></canvas>
+
+    @if (State.IsRunning)
+    {
+        <div class="centered"><ProgressRing Percent="State.ProgressPercent" Size="90" /></div>
+    }
+    else if (State.Gpu is { } g)
+    {
+        <div class="stat-row">
+            <MetricCard Label="Score" Value="@g.Score.ToString("F0")" Icon="✦" />
+            <MetricCard Label="Avg FPS" Value="@g.AvgFps.ToString("F0")" Unit="fps" />
+        </div>
+    }
+    else
+    {
+        <p class="muted">Runs a heavy WebGL fill loop for @DiagnosticDefaults.GpuBenchDurationSec s and measures sustained FPS.</p>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private async Task Run() => await Orch.RunGpuAsync("gpu-canvas");
+}

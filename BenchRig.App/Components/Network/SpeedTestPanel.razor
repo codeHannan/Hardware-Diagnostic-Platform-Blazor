@@ -1,0 +1,135 @@
+@inject NetworkTestOrchestrator Orch
+@inject NetworkDiagState State
+@implements IDisposable
+
+<div class="card speedtest">
+    <div class="st-serverbar">
+        <div class="st-srv-info">
+            <span class="st-srv-label">Test server</span>
+            <select class="select st-srv-select" disabled="@State.IsRunning"
+                    value="@State.SelectedServer?.Key" @onchange="OnServerChange">
+                @if (State.Servers.Count == 0)
+                {
+                    <option>Loading servers…</option>
+                }
+                else
+                {
+                    @foreach (var s in State.Servers)
+                    {
+                        <option value="@s.Key">@s.Name@(string.IsNullOrEmpty(s.Location) ? "" : $" · {s.Location}")</option>
+                    }
+                }
+            </select>
+            <button class="btn btn-ghost st-add-toggle" @onclick="() => _showAdd = !_showAdd" disabled="@State.IsRunning">+ Add</button>
+        </div>
+        @if (_showAdd)
+        {
+            <div class="st-add fade-in">
+                <input class="input" @bind="_addName" placeholder="Name (e.g. My VPS)" />
+                <input class="input" @bind="_addUrl" placeholder="https://your-host" />
+                <select class="select" @bind="_addKind" style="width:auto">
+                    <option value="ls">LibreSpeed</option>
+                    <option value="worker">BenchRig Worker</option>
+                </select>
+                <button class="btn btn-primary" @onclick="AddServer" disabled="@_adding">Add</button>
+                <p class="muted st-add-hint">Server must send CORS headers (Access-Control-Allow-Origin). See /cloudflare-worker to deploy your own.</p>
+            </div>
+        }
+    </div>
+
+    <div class="st-stage">
+        <SpeedGauge Value="GaugeValue" Max="GaugeMax" Unit="Mbps" Caption="@PhaseCaption" />
+        <button class="go-btn @(State.IsRunning ? "busy" : "")" disabled="@State.IsRunning" @onclick="Run">
+            @(State.IsRunning ? "…" : State.Phase == SpeedPhase.Done ? "AGAIN" : "GO")
+        </button>
+    </div>
+
+    <div class="st-metrics">
+        <div class="st-metric @Active(SpeedPhase.Download)">
+            <span class="st-ico">▼</span>
+            <div><span class="st-label">Download</span><span class="st-num mono">@Fmt(State.DownloadMbps)<small>Mbps</small></span></div>
+        </div>
+        <div class="st-metric @Active(SpeedPhase.Upload)">
+            <span class="st-ico">▲</span>
+            <div><span class="st-label">Upload</span><span class="st-num mono">@Fmt(State.UploadMbps)<small>Mbps</small></span></div>
+        </div>
+        <div class="st-metric @Active(SpeedPhase.Latency)">
+            <span class="st-ico">⟳</span>
+            <div><span class="st-label">Ping</span><span class="st-num mono">@Fmt(State.PingMs)<small>ms</small></span></div>
+        </div>
+        <div class="st-metric">
+            <span class="st-ico">≈</span>
+            <div><span class="st-label">Jitter</span><span class="st-num mono">@Fmt(State.JitterMs)<small>ms</small></span></div>
+        </div>
+    </div>
+
+    <div class="st-foot">
+        @if (State.NetworkInfo is { } info)
+        {
+            <div class="st-conn"><span class="st-conn-label">Provider</span><span class="st-conn-val">@Dash(info.Isp)</span></div>
+            <div class="st-conn"><span class="st-conn-label">Public IP</span><span class="st-conn-val mono">@Dash(info.PublicIp)</span></div>
+            <div class="st-conn"><span class="st-conn-label">Server</span><span class="st-conn-val">@(State.SelectedServer?.Name ?? "—")</span></div>
+        }
+        else
+        {
+            <span class="muted">Detecting connection…</span>
+        }
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private bool _showAdd;
+    private bool _adding;
+    private string _addName = "";
+    private string _addUrl = "";
+    private string _addKind = "ls";
+
+    private async Task Run() => await Orch.RunFullTestAsync();
+    private void OnServerChange(ChangeEventArgs e) => State.SelectServer(e.Value?.ToString() ?? "cf");
+
+    private async Task AddServer()
+    {
+        if (string.IsNullOrWhiteSpace(_addUrl)) return;
+        _adding = true;
+        try
+        {
+            await Orch.AddCustomServerAsync(string.IsNullOrWhiteSpace(_addName) ? "Custom server" : _addName.Trim(), _addUrl.Trim(), _addKind);
+            _addName = _addUrl = "";
+            _showAdd = false;
+        }
+        finally { _adding = false; }
+    }
+
+    private static string Fmt(double v) => v <= 0 ? "0.0" : v.ToString("0.0");
+    private static string Dash(string s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
+    private string Active(SpeedPhase p) => State.Phase == p && State.IsRunning ? "on" : "";
+
+    private double GaugeValue => State.Phase switch
+    {
+        SpeedPhase.Download => State.IsRunning ? State.LiveMbps : State.DownloadMbps,
+        SpeedPhase.Upload => State.IsRunning ? State.LiveMbps : State.UploadMbps,
+        SpeedPhase.Latency => 0,
+        _ => State.DownloadMbps,
+    };
+
+    private double GaugeMax
+    {
+        get
+        {
+            double v = Math.Max(GaugeValue, Math.Max(State.DownloadMbps, State.UploadMbps));
+            return v switch { <= 10 => 10, <= 50 => 50, <= 100 => 100, <= 250 => 250, <= 500 => 500, _ => 1000 };
+        }
+    }
+
+    private string PhaseCaption => State.Phase switch
+    {
+        SpeedPhase.Latency => "Pinging",
+        SpeedPhase.Download => "Download",
+        SpeedPhase.Upload => "Upload",
+        SpeedPhase.Done => "Result",
+        _ => "Ready",
+    };
+}

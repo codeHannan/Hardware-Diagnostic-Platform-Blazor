@@ -1,0 +1,71 @@
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+
+<div class="card">
+    <div class="panel-head"><h3>Start a discussion</h3></div>
+    @if (!Auth.IsLoggedIn)
+    {
+        <p class="muted">Please <a href="@AppRoutes.Login">sign in</a> to create a post.</p>
+    }
+    else
+    {
+        <label>Title</label>
+        <input class="input" @bind="_title" maxlength="@DiagnosticDefaults.MaxPostTitle" placeholder="What's the issue?" />
+
+        <label style="margin-top:.8rem;display:block">Body (markdown)</label>
+        <textarea class="textarea" @bind="_body" maxlength="@DiagnosticDefaults.MaxPostBody" placeholder="Describe your problem, what you've tried, and any BenchRig results..."></textarea>
+
+        <label style="margin-top:.8rem;display:block">Tags (comma separated)</label>
+        <input class="input" @bind="_tags" placeholder="network, latency" />
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <p class="validation-message">@_error</p>
+        }
+
+        <button class="btn btn-primary" style="margin-top:1rem" disabled="@_busy" @onclick="Submit">
+            @(_busy ? "Posting..." : "Post")
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback OnPosted { get; set; }
+
+    private string _title = "";
+    private string _body = "";
+    private string _tags = "";
+    private string? _error;
+    private bool _busy;
+
+    private async Task Submit()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_body))
+        {
+            _error = "Title and body are required.";
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var user = Auth.CurrentUser!;
+            await Firestore.AddDocumentAsync(FirestoreCollections.ForumPosts, new
+            {
+                title = _title.Trim(),
+                body = _body.Trim(),
+                authorUid = user.Uid,
+                authorName = user.DisplayName,
+                tags = _tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                avgRating = 0.0,
+                ratingCount = 0,
+                commentCount = 0,
+                updatedAt = DateTime.UtcNow.ToString("o"),
+            });
+            _title = _body = _tags = "";
+            await OnPosted.InvokeAsync();
+        }
+        catch (Exception ex) { _error = $"Could not post: {ex.Message}"; }
+        finally { _busy = false; }
+    }
+}

@@ -1,0 +1,14 @@
+@page "/compute"
+@using BenchRig.App.Components.Compute
+
+<PageTitle>Compute Benchmarks - BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Compute Benchmarks</h1>
+    <p>Stress your CPU with a multi-threaded prime sieve and your GPU with a sustained WebGL fill loop. Scores are normalized for quick comparison.</p>
+</div>
+
+<div class="page-grid">
+    <CpuBenchPanel />
+    <GpuBenchPanel />
+</div>

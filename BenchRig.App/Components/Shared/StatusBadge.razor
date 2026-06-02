@@ -1,0 +1,16 @@
+﻿<span class="badge @CssClass">@Text</span>
+
+@code {
+    public enum BadgeKind { Neutral, Ok, Warn, Bad }
+
+    [Parameter] public string Text { get; set; } = "";
+    [Parameter] public BadgeKind Kind { get; set; } = BadgeKind.Neutral;
+
+    private string CssClass => Kind switch
+    {
+        BadgeKind.Ok => "badge-ok",
+        BadgeKind.Warn => "badge-warn",
+        BadgeKind.Bad => "badge-bad",
+        _ => "",
+    };
+}

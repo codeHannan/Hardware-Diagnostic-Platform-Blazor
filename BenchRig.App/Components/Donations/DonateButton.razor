@@ -1,0 +1,17 @@
+@inject IJsStripeBridge Stripe
+
+<div class="card donate-panel">
+    <h3>Support BenchRig</h3>
+    <p class="muted">BenchRig is free and runs entirely in your browser. Donations keep it ad-free.</p>
+    <div class="donate-amounts">
+        <button class="btn" @onclick="() => Donate(500)">$5</button>
+        <button class="btn" @onclick="() => Donate(1000)">$10</button>
+        <button class="btn" @onclick="() => Donate(2500)">$25</button>
+        <button class="btn" @onclick="() => Donate(5000)">$50</button>
+        <button class="btn btn-primary" @onclick="() => Donate(0)">Custom</button>
+    </div>
+</div>
+
+@code {
+    private async Task Donate(int amountCents) => await Stripe.RedirectToCheckoutAsync(amountCents);
+}

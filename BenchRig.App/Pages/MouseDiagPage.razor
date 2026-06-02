@@ -1,0 +1,15 @@
+@page "/mouse"
+@using BenchRig.App.Components.Mouse
+
+<PageTitle>Mouse Diagnostics - BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Mouse Diagnostics</h1>
+    <p>Test click speed, sensor polling rate, and button registration. Tip: clicking inside a test surface is captured directly by the browser pointer API.</p>
+</div>
+
+<div class="page-grid">
+    <CpsTestPanel />
+    <PollingRatePanel />
+    <ButtonTestPanel />
+</div>

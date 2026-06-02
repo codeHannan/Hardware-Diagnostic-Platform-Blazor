@@ -1,0 +1,8 @@
+.nd-group {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--accent-strong); font-weight: 700;
+    margin: 1rem 0 .5rem; padding-bottom: .35rem; border-bottom: 1px solid var(--border);
+}
+.nd-group:first-of-type { margin-top: .3rem; }
+.kvs { margin: 0; }
