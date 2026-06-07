@@ -1,14 +1,53 @@
 @page "/compute"
 @using BenchRig.App.Components.Compute
+@inject ComputeTestOrchestrator Orch
 
-<PageTitle>Compute Benchmarks - BenchRig</PageTitle>
+<PageTitle>Compute Benchmarks | BenchRig</PageTitle>
 
 <div class="page-intro">
     <h1>Compute Benchmarks</h1>
-    <p>Stress your CPU with a multi-threaded prime sieve and your GPU with a sustained WebGL fill loop. Scores are normalized for quick comparison.</p>
+    <p>Intensive CPU (multi-threaded), GPU (WebGL2 volumetric ray-marcher, Volume Shader style), and memory benchmarks with selectable presets. Scores are normalized and compared against reference hardware (approximate, Geekbench/relative-scaled).</p>
 </div>
 
-<div class="page-grid">
-    <CpuBenchPanel />
-    <GpuBenchPanel />
+<div class="tabbar">
+    @foreach (var t in _tabs)
+    {
+        <button class="tab @(t.Id == _active ? "on" : "")" @onclick="() => _active = t.Id">
+            <span class="tab-ico">@t.Icon</span> @t.Name
+        </button>
+    }
 </div>
+
+<div class="tab-body" @key="_active">
+    @switch (_active)
+    {
+        case 1:
+            <HardwarePanel />
+            break;
+        case 2:
+            <CpuBenchPanel />
+            break;
+        case 3:
+            <GpuBenchPanel />
+            break;
+        case 4:
+            <MemoryBenchPanel />
+            break;
+    }
+</div>
+
+@code {
+    private int _active = 1;
+
+    private record Tab(int Id, string Name, string Icon);
+
+    private readonly Tab[] _tabs =
+    [
+        new(1, "Hardware", "▥"),
+        new(2, "CPU", "⚙"),
+        new(3, "GPU", "✦"),
+        new(4, "Memory", "▦"),
+    ];
+
+    protected override async Task OnInitializedAsync() => await Orch.DetectHardwareAsync();
+}

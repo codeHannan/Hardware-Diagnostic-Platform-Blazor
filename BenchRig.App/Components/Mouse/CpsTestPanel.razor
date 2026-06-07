@@ -1,57 +1,127 @@
-@inject MouseTestOrchestrator Orch
 @inject MouseDiagState State
 @implements IDisposable
 
 <div class="card">
     <div class="panel-head">
-        <h3>Click Speed (CPS)</h3>
-        @if (!_active)
-        {
-            <button class="btn btn-primary" @onclick="Start">Start</button>
-        }
-        else
-        {
-            <button class="btn" @onclick="Stop">Stop</button>
-        }
+        <h3>CPS Test</h3>
+        <div class="test-toolbar">
+            <select class="select" @bind="_durationSec" disabled="@_active">
+                <option value="1">1 second</option>
+                <option value="5">5 seconds</option>
+                <option value="10">10 seconds</option>
+                <option value="100">100 seconds</option>
+            </select>
+            <button class="btn btn-ghost" @onclick="Reset" disabled="@_active">Reset</button>
+        </div>
     </div>
 
-    <div id="cps-surface" class="test-surface">
+    <div class="click-pad @(_active ? "armed" : "")" @onpointerdown="OnClick" @oncontextmenu:preventDefault="true" @oncontextmenu="Noop">
         @if (_active)
         {
             <div>
-                <div class="mono big">@State.LiveCps.ToString("F1")</div>
-                <span class="muted">clicks / sec - keep clicking!</span>
+                <div class="pad-big">@_cps.ToString("0.0")</div>
+                <div class="pad-sub">CPS · @_clicks clicks · @_remaining.ToString("0.0")s left</div>
             </div>
         }
-        else if (State.Click is { } c)
+        else if (_done)
         {
             <div>
-                <div class="mono big">@c.Cps.ToString("F1")</div>
-                <span class="muted">@c.TotalClicks clicks in @c.DurationSec.ToString("F1") s</span>
+                <div class="pad-big">@_cps.ToString("0.0")</div>
+                <div class="pad-sub">@(_cooldown ? "Ready again in a moment…" : $"{_clicks} clicks in {_durationSec}s · click to try again")</div>
             </div>
         }
         else
         {
-            <span>Press Start, then click here as fast as you can.</span>
+            <div class="pad-hint">Click here as fast as you can.<br />The @_durationSec-second timer starts on your first click.</div>
         }
     </div>
+
+    @if (_done)
+    {
+        <div class="result-grid">
+            <MetricCard Label="CPS" Value="@_cps.ToString("0.0")" />
+            <MetricCard Label="Total clicks" Value="@_clicks.ToString()" />
+            <MetricCard Label="Rating" Value="@Rating" />
+        </div>
+    }
 </div>
 
 @code {
+    private int _durationSec = 5;
+    private int _clicks;
+    private double _cps;
+    private double _remaining;
     private bool _active;
+    private bool _done;
+    private bool _cooldown;
+    private DateTime _start;
+    private System.Threading.Timer? _timer;
+    private System.Threading.Timer? _cooldownTimer;
 
-    protected override void OnInitialized() => State.OnChange += StateHasChanged;
-    public void Dispose() => State.OnChange -= StateHasChanged;
-
-    private async Task Start()
+    private string Rating => _cps switch
     {
+        >= 10 => "Excellent",
+        >= 7 => "Great",
+        >= 5 => "Good",
+        >= 3 => "Average",
+        _ => "Keep practicing",
+    };
+
+    private void OnClick(PointerEventArgs e)
+    {
+        if (_active)
+        {
+            _clicks++;
+            var elapsed = (DateTime.UtcNow - _start).TotalSeconds;
+            _cps = elapsed > 0 ? _clicks / elapsed : 0;
+            return;
+        }
+        // Brief lock-out after a run so the rapid clicking doesn't instantly restart it.
+        if (_cooldown) return;
+        // start (also restarts after a finished run)
+        _done = false;
+        _clicks = 1;
+        _cps = 0;
+        _remaining = _durationSec;
         _active = true;
-        await Orch.StartCpsTestAsync("cps-surface");
+        _start = DateTime.UtcNow;
+        _timer = new System.Threading.Timer(_ => Tick(), null, 100, 100);
     }
 
-    private async Task Stop()
+    private void Tick()
     {
-        _active = false;
-        await Orch.StopCpsTestAsync("cps-surface");
+        var elapsed = (DateTime.UtcNow - _start).TotalSeconds;
+        _remaining = Math.Max(0, _durationSec - elapsed);
+        _cps = elapsed > 0 ? _clicks / Math.Min(elapsed, _durationSec) : 0;
+        if (elapsed >= _durationSec) Finish();
+        else InvokeAsync(StateHasChanged);
     }
+
+    private void Finish()
+    {
+        _timer?.Dispose();
+        _timer = null;
+        _cps = _durationSec > 0 ? _clicks / (double)_durationSec : 0;
+        _active = false;
+        _done = true;
+        StartCooldown();
+        State.SetClick(new ClickTestResult { Cps = _cps, TotalClicks = _clicks, DurationSec = _durationSec });
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void StartCooldown()
+    {
+        _cooldown = true;
+        _cooldownTimer?.Dispose();
+        _cooldownTimer = new System.Threading.Timer(_ =>
+        {
+            _cooldown = false;
+            InvokeAsync(StateHasChanged);
+        }, null, 2000, System.Threading.Timeout.Infinite);
+    }
+
+    private void Reset() { _done = false; _clicks = 0; _cps = 0; }
+    private void Noop() { }
+
+    public void Dispose() { _timer?.Dispose(); _cooldownTimer?.Dispose(); }
 }

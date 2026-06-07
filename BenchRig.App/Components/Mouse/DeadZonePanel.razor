@@ -1,0 +1,82 @@
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Jitter &amp; Dead Zone</h3>
+    </div>
+    <p class="muted">For <b>jitter</b>, click inside the box and keep the mouse perfectly still. A clean sensor reports almost no movement. For <b>dead zone</b>, move the mouse as slowly as possible; the smallest step it reports is shown below.</p>
+
+    <div class="dz-stage" @onpointermove="OnMove" @onpointerdown="StartStill">
+        <div class="dz-cross" style="left:@(_x)px; top:@(_y)px"></div>
+        @if (_capturing)
+        {
+            <div class="dz-overlay">Hold still, measuring jitter ({_remaining:0.0}s)</div>
+        }
+        else
+        {
+            <div class="dz-hint">Click and hold still to measure jitter</div>
+        }
+    </div>
+
+    <div class="result-grid">
+        <MetricCard Label="Jitter (still)" Value="@(_jitterMeasured ? _jitter.ToString("0.0") : "N/A")" Unit="px" Sub="@JitterVerdict" />
+        <MetricCard Label="Dead zone (min step)" Value="@(_minStep < double.MaxValue ? _minStep.ToString("0.0") : "N/A")" Unit="px" />
+        <MetricCard Label="Spurious moves" Value="@(_jitterMeasured ? _spurious.ToString() : "N/A")" Sub="while still" />
+    </div>
+</div>
+
+@code {
+    private double _x = 150, _y = 110;
+    private double _minStep = double.MaxValue;
+    private double _jitter;
+    private int _spurious;
+    private bool _capturing;
+    private bool _jitterMeasured;
+    private double _remaining;
+    private DateTime _start;
+    private System.Threading.Timer? _timer;
+
+    private string JitterVerdict => !_jitterMeasured ? "" : _jitter < 1.5 ? "Excellent" : _jitter < 4 ? "Acceptable" : "High jitter";
+
+    private void OnMove(PointerEventArgs e)
+    {
+        // visual crosshair (offset within stage)
+        _x = Math.Clamp(e.OffsetX, 0, 100000);
+        _y = Math.Clamp(e.OffsetY, 0, 100000);
+
+        double mag = Math.Sqrt(e.MovementX * e.MovementX + e.MovementY * e.MovementY);
+        if (mag > 0 && mag < _minStep) _minStep = mag;
+
+        if (_capturing && mag > 0)
+        {
+            _spurious++;
+            if (mag > _jitter) _jitter = mag;
+        }
+    }
+
+    private void StartStill()
+    {
+        if (_capturing) return;
+        _capturing = true;
+        _jitterMeasured = false;
+        _jitter = 0;
+        _spurious = 0;
+        _remaining = 3;
+        _start = DateTime.UtcNow;
+        _timer = new System.Threading.Timer(_ => Tick(), null, 100, 100);
+    }
+
+    private void Tick()
+    {
+        _remaining = Math.Max(0, 3 - (DateTime.UtcNow - _start).TotalSeconds);
+        if (_remaining <= 0)
+        {
+            _timer?.Dispose(); _timer = null;
+            _capturing = false;
+            _jitterMeasured = true;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

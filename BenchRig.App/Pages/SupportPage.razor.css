@@ -1,0 +1,51 @@
+.sup-grid { display: grid; grid-template-columns: 380px 1fr; gap: 1.4rem; align-items: start; }
+
+/* ── New ticket form ── */
+.sup-new { position: sticky; top: 1rem; }
+.sup-lbl { margin-top: .8rem; display: block; }
+.sup-body { min-height: 140px; }
+.sup-count { text-align: right; font-size: .72rem; color: var(--text-2); margin-top: .2rem; font-family: var(--mono); }
+.sup-submit { margin-top: 1rem; }
+.sup-ok { color: var(--ok); font-size: .84rem; font-weight: 600; margin: .8rem 0 0; }
+
+/* ── List ── */
+.sup-list { min-width: 0; display: flex; flex-direction: column; gap: .8rem; }
+.sup-toolbar { display: flex; gap: .6rem; }
+.sup-toolbar .input { flex: 1; }
+.sup-sort { width: auto; }
+
+.sup-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.sup-chip {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .3rem .7rem; border-radius: var(--r-pill); border: 1px solid var(--border);
+    background: var(--surface-1); color: var(--text-1); font-size: .78rem; font-weight: 600; cursor: pointer;
+    transition: all .12s ease;
+}
+.sup-chip:hover { border-color: var(--accent); color: var(--cream); }
+.sup-chip.on { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--text-on-accent); border-color: transparent; }
+.sup-n { font-size: .72rem; opacity: .7; font-family: var(--mono); }
+
+/* ── Ticket cards ── */
+.sup-card {
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    background: linear-gradient(160deg, var(--surface-2), var(--surface-1)); overflow: hidden;
+    transition: border-color .12s ease;
+}
+.sup-card.open { border-color: var(--accent); }
+.sup-card-head {
+    width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; background: none; border: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.2rem;
+}
+.sup-card-main { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.sup-subject { font-weight: 600; font-size: 1rem; }
+.sup-meta { font-size: .78rem; }
+.sup-card-badges { display: flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.sup-caret { color: var(--text-2); font-size: .8rem; }
+.sup-card-detail { padding: 0 1.2rem 1.2rem; }
+
+.btn-sm { padding: .35rem .7rem; font-size: .8rem; }
+
+@media (max-width: 900px) {
+    .sup-grid { grid-template-columns: 1fr; }
+    .sup-new { position: static; }
+}

@@ -30,7 +30,17 @@ public sealed class AuthService : IAsyncDisposable
     public async Task InitializeAsync()
     {
         _selfRef ??= DotNetObjectReference.Create(this);
-        await _auth.RegisterAuthStateListenerAsync(_selfRef, nameof(OnAuthStateChanged));
+        try
+        {
+            await _auth.RegisterAuthStateListenerAsync(_selfRef, nameof(OnAuthStateChanged));
+        }
+        finally
+        {
+            // Mark auth resolved (signed-out) so guards/UI don't hang if the listener
+            // never fires (e.g. Firebase Auth not configured). The listener will update
+            // CurrentUser later if a session exists.
+            if (!_state.IsInitialized) _state.SetUser(null);
+        }
     }
 
     public async Task SignInWithEmailAsync(string email, string password)

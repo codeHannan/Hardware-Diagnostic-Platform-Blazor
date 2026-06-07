@@ -1,0 +1,81 @@
+@using BenchRig.App.Core.Engines.Keyboard
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Polling / Key Rate</h3>
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+    </div>
+
+    <div class="kbd-focusbar @(_focused ? "active" : "")">
+        <span><span class="kbd-dot"></span> @(_focused ? "Mash a key as fast as you can" : "Click below to start")</span>
+        <span class="muted">@_tapTimes.Count samples</span>
+    </div>
+
+    <div class="kbd-capture click-pad" tabindex="0" @ref="_el" style="min-height:200px"
+         @onkeydown="OnDown" @onkeyup="OnUp" @onkeydown:preventDefault="true"
+         @onfocus="() => _focused = true" @onblur="() => _focused = false" @onclick="Focus">
+        <div>
+            <div class="pad-big">@_tapHz.ToString("0")</div>
+            <div class="pad-sub">key events / sec (tap) · peak @_peakHz.ToString("0")</div>
+        </div>
+    </div>
+
+    <div class="result-grid">
+        <MetricCard Label="Tap rate" Value="@_tapHz.ToString("0")" Unit="Hz" />
+        <MetricCard Label="Peak interval" Value="@_peakHz.ToString("0")" Unit="Hz" />
+        <MetricCard Label="OS repeat rate" Value="@(_repeatHz > 0 ? _repeatHz.ToString("0") : "—")" Unit="Hz" />
+        <MetricCard Label="Samples" Value="@_tapTimes.Count.ToString()" />
+    </div>
+    <p class="muted" style="margin-top:.6rem">Browsers can't read a keyboard's raw hardware polling rate — the OS masks it. This measures how fast key <i>events</i> arrive: tap rate (rapid distinct presses) and the OS auto-repeat rate when you hold a key.</p>
+</div>
+
+@code {
+    private ElementReference _el;
+    private bool _focused, _autofocused;
+    private readonly List<double> _tapTimes = new();
+    private readonly List<double> _repeatIntervals = new();
+    private double _lastRepeat;
+    private double _tapHz, _peakHz, _repeatHz;
+    private readonly KeyPollingRateAnalyzer _analyzer = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    { if (firstRender && !_autofocused) { _autofocused = true; try { await _el.FocusAsync(); } catch { } } }
+    private async Task Focus() { try { await _el.FocusAsync(); } catch { } }
+
+    private void OnDown(KeyboardEventArgs e)
+    {
+        double now = NowMs();
+        if (e.Repeat)
+        {
+            if (_lastRepeat > 0)
+            {
+                _repeatIntervals.Add(now - _lastRepeat);
+                if (_repeatIntervals.Count > 30) _repeatIntervals.RemoveAt(0);
+                double avg = _repeatIntervals.Average();
+                _repeatHz = avg > 0 ? 1000.0 / avg : 0;
+            }
+            _lastRepeat = now;
+            return;
+        }
+        _tapTimes.Add(now);
+        if (_tapTimes.Count > 60) _tapTimes.RemoveAt(0);
+        var r = _analyzer.Analyze(_tapTimes);
+        _tapHz = r.Hz;
+        // KeyPollingRate has no MaxHz; derive peak from min interval here:
+        _peakHz = PeakHz();
+    }
+
+    private double PeakHz()
+    {
+        if (_tapTimes.Count < 3) return 0;
+        double min = double.MaxValue;
+        for (int i = 1; i < _tapTimes.Count; i++) { double d = _tapTimes[i] - _tapTimes[i - 1]; if (d > 0 && d < min) min = d; }
+        return min < double.MaxValue ? 1000.0 / min : 0;
+    }
+
+    private void OnUp(KeyboardEventArgs e) => _lastRepeat = 0;
+
+    private static double NowMs() => (DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+
+    private void Reset() { _tapTimes.Clear(); _repeatIntervals.Clear(); _lastRepeat = 0; _tapHz = _peakHz = _repeatHz = 0; }
+}

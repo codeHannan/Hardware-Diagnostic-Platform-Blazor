@@ -8,6 +8,9 @@
 .pc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .pc-head h3 { margin: 0; font-size: 1.1rem; }
 .pc-rating { color: var(--warn); font-weight: 700; white-space: nowrap; }
-.pc-body { color: var(--text-1); font-size: .9rem; margin: .5rem 0; }
-.pc-meta { display: flex; justify-content: space-between; font-size: .8rem; color: var(--text-1); }
+.pc-rating.muted { color: var(--text-2); }
+.pc-body { color: var(--text-1); font-size: .9rem; margin: .5rem 0; line-height: 1.5; }
+.pc-meta { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-size: .8rem; color: var(--text-1); margin-top: .6rem; }
+.pc-author { font-weight: 600; }
+.pc-stats { white-space: nowrap; }
 .pc-tags { display: flex; gap: .4rem; margin-top: .7rem; flex-wrap: wrap; }

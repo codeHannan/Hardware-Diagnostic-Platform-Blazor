@@ -39,6 +39,7 @@ public record ButtonState
 public record PollingRateResult
 {
     public double Hz { get; init; }
+    public double MaxHz { get; init; }
     public int SampleCount { get; init; }
     public double DeviationHz { get; init; }
 }

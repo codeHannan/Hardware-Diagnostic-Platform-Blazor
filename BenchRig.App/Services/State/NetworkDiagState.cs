@@ -19,8 +19,12 @@ public sealed class NetworkDiagState : StateContainerBase
     public double LiveMbps { get; private set; }          // current phase's live reading
     public double DownloadMbps { get; private set; }
     public double UploadMbps { get; private set; }
-    public double PingMs { get; private set; }
+    public double PingMs { get; private set; }            // idle (min) latency
+    public double AvgPingMs { get; private set; }
+    public double MaxPingMs { get; private set; }
     public double JitterMs { get; private set; }
+    public double Bufferbloat { get; private set; }       // added latency under download load (ms)
+    public double LoadedPingMs => Bufferbloat > 0 && PingMs > 0 ? PingMs + Bufferbloat : 0;
 
     private readonly List<LatencyResult> _latencyHistory = new(64);
     private readonly List<DiagnosticServer> _servers = new(16);
@@ -66,7 +70,7 @@ public sealed class NetworkDiagState : StateContainerBase
     {
         IsRunning = true;
         Phase = SpeedPhase.Latency;
-        LiveMbps = DownloadMbps = UploadMbps = PingMs = JitterMs = 0;
+        LiveMbps = DownloadMbps = UploadMbps = PingMs = AvgPingMs = MaxPingMs = JitterMs = Bufferbloat = 0;
         _latencyHistory.Clear();
         LatestSpeedTest = null;
         NotifyStateChanged();
@@ -75,12 +79,16 @@ public sealed class NetworkDiagState : StateContainerBase
     public void SetPhase(SpeedPhase phase) { Phase = phase; LiveMbps = 0; NotifyStateChanged(); }
     public void SetLiveMbps(double mbps) { LiveMbps = mbps; NotifyThrottled(); }
 
-    public void SetLatency(double pingMs, double jitterMs)
+    public void SetLatency(double minMs, double avgMs, double maxMs, double jitterMs)
     {
-        PingMs = pingMs;
+        PingMs = minMs;
+        AvgPingMs = avgMs;
+        MaxPingMs = maxMs;
         JitterMs = jitterMs;
         NotifyStateChanged();
     }
+
+    public void SetBufferbloat(double ms) { Bufferbloat = ms; NotifyStateChanged(); }
 
     public void AppendLatency(LatencyResult r) { _latencyHistory.Add(r); NotifyThrottled(); }
 
@@ -104,7 +112,7 @@ public sealed class NetworkDiagState : StateContainerBase
     {
         Phase = SpeedPhase.Idle;
         IsRunning = false;
-        LiveMbps = DownloadMbps = UploadMbps = PingMs = JitterMs = 0;
+        LiveMbps = DownloadMbps = UploadMbps = PingMs = AvgPingMs = MaxPingMs = JitterMs = Bufferbloat = 0;
         _latencyHistory.Clear();
         LatestSpeedTest = null;
         StabilityResult = null;

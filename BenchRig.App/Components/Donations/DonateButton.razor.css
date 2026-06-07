@@ -1,3 +1,35 @@
 .donate-panel { max-width: 460px; }
-.donate-amounts { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
-.donate-amounts .btn { min-width: 64px; justify-content: center; }
+.donate-panel h3 { margin-top: 0; }
+
+/* Frequency toggle */
+.donate-freq { display: inline-flex; padding: 3px; gap: 3px; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-pill); margin: 1rem 0 .2rem; }
+.df { background: none; border: none; color: var(--text-1); font-size: .82rem; font-weight: 600; padding: .35rem .9rem; border-radius: var(--r-pill); cursor: pointer; transition: all .12s ease; }
+.df:hover { color: var(--cream); }
+.df.on { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--text-on-accent); }
+
+/* Amount grid */
+.donate-amounts { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; margin-top: 1rem; }
+.da {
+    display: flex; flex-direction: column; align-items: center; gap: .1rem;
+    padding: .8rem; border-radius: var(--r-md); border: 1px solid var(--border);
+    background: var(--surface-1); color: var(--text-0); cursor: pointer; font: inherit; transition: all .12s ease;
+}
+.da:hover { border-color: var(--accent); transform: translateY(-1px); }
+.da.on { border-color: var(--accent); background: var(--surface-2); box-shadow: 0 0 0 1px var(--accent) inset; }
+.da-amt { font-size: 1.15rem; font-weight: 700; color: var(--cream); }
+.da-label { font-size: .72rem; color: var(--text-2); }
+
+.donate-go { width: 100%; margin-top: 1rem; }
+.donate-other { display: block; width: 100%; text-align: center; background: none; border: none; color: var(--text-2); font-size: .82rem; font-weight: 600; cursor: pointer; margin-top: .7rem; }
+.donate-other:hover:not(:disabled) { color: var(--cream); }
+.donate-other:disabled { cursor: default; opacity: .6; }
+
+.donate-err { margin-top: .7rem; }
+.donate-secure { font-size: .74rem; margin: 1rem 0 0; line-height: 1.5; }
+
+/* Not-configured setup card */
+.donate-setup { margin-top: .8rem; font-size: .86rem; line-height: 1.55; }
+.donate-setup code { font-size: .8rem; }
+.donate-setup .btn { margin-top: .8rem; }
+
+@media (max-width: 420px) { .donate-amounts { grid-template-columns: 1fr; } }

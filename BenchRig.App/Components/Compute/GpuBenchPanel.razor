@@ -5,31 +5,82 @@
 <div class="card">
     <div class="panel-head">
         <h3>GPU Benchmark</h3>
-        <button class="btn btn-primary" disabled="@State.IsRunning" @onclick="Run">Run</button>
+        <div class="test-toolbar">
+            <select class="select" @bind="_presetIndex" disabled="@State.IsRunning">
+                @for (int i = 0; i < ComputePresets.Gpu.Length; i++)
+                {
+                    <option value="@i">@ComputePresets.Gpu[i].Name</option>
+                }
+            </select>
+            <button class="btn btn-primary" disabled="@(State.IsRunning || NoWebgl2)" @onclick="Run">@(State.IsRunning ? "Running…" : "Run")</button>
+        </div>
     </div>
+    <p class="muted">@Preset.Desc · WebGL2 volumetric ray-marching shader (Volume Shader style). Renders @Preset.Width×@Preset.Height with @Preset.Complexity ray-march steps per pixel and measures sustained FPS with a real GPU sync (warm-up excluded).</p>
 
-    <canvas id="gpu-canvas" width="320" height="120" class="gpu-canvas"></canvas>
+    @if (NoWebgl2)
+    {
+        <p class="validation-message">WebGL2 isn't available in this browser, so the GPU benchmark can't run.</p>
+    }
+
+    <canvas id="gpu-canvas" class="gpu-canvas @(State.IsRunning ? "live" : "")"></canvas>
 
     @if (State.IsRunning)
     {
         <div class="centered"><ProgressRing Percent="State.ProgressPercent" Size="90" /></div>
+        <p class="muted" style="text-align:center">@State.Phase</p>
     }
     else if (State.Gpu is { } g)
     {
-        <div class="stat-row">
-            <MetricCard Label="Score" Value="@g.Score.ToString("F0")" Icon="✦" />
-            <MetricCard Label="Avg FPS" Value="@g.AvgFps.ToString("F0")" Unit="fps" />
-        </div>
+        @if (!g.Supported)
+        {
+            <p class="validation-message">The shader could not run on this GPU/driver.</p>
+        }
+        else
+        {
+            <div class="result-grid">
+                <MetricCard Label="GPU score" Value="@g.Score.ToString("0")" Icon="✦" />
+                <MetricCard Label="Avg FPS" Value="@g.AvgFps.ToString("0.0")" Unit="fps" />
+                <MetricCard Label="Resolution" Value="@g.Resolution" />
+                <MetricCard Label="Ray-march steps" Value="@g.Complexity.ToString()" Sub="@($"{g.Frames} frames")" />
+            </div>
+
+            <h4 class="cmp-title">vs reference GPUs <span class="muted">(approx. relative index)</span></h4>
+            <div class="cmp">
+                @foreach (var row in CompareRows(g.Score))
+                {
+                    <div class="cmp-row @(row.IsYou ? "you" : "")">
+                        <span class="cmp-name">@row.Name</span>
+                        <div class="cmp-bar"><div style="width:@(row.Pct)%"></div></div>
+                        <span class="cmp-val mono">@row.Score.ToString("0")</span>
+                    </div>
+                }
+            </div>
+        }
     }
     else
     {
-        <p class="muted">Runs a heavy WebGL fill loop for @DiagnosticDefaults.GpuBenchDurationSec s and measures sustained FPS.</p>
+        <p class="muted">Pick a resolution/complexity preset and run. Heavier presets stress the GPU harder and lower the FPS.</p>
     }
 </div>
 
 @code {
+    private int _presetIndex = 1;
+    private GpuPreset Preset => ComputePresets.Gpu[_presetIndex];
+    private bool NoWebgl2 => State.Hardware is { Webgl2: false };
+
     protected override void OnInitialized() => State.OnChange += StateHasChanged;
     public void Dispose() => State.OnChange -= StateHasChanged;
 
-    private async Task Run() => await Orch.RunGpuAsync("gpu-canvas");
+    private async Task Run() => await Orch.RunGpuAsync("gpu-canvas", Preset.Width, Preset.Height, Preset.Complexity, Preset.DurationMs);
+
+    private record Row(string Name, double Score, double Pct, bool IsYou);
+
+    private List<Row> CompareRows(double you)
+    {
+        var entries = ComputePresets.ReferenceGpus.Select(r => (Name: r.Name, Score: r.Score, You: false)).ToList();
+        entries.Add((string.IsNullOrWhiteSpace(State.GpuName) ? "Your GPU" : State.GpuName, you, true));
+        double max = Math.Max(1, entries.Max(e => e.Score));
+        return entries.OrderByDescending(e => e.Score)
+            .Select(e => new Row(e.Name, e.Score, e.Score / max * 100, e.You)).ToList();
+    }
 }

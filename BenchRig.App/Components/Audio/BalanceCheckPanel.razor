@@ -1,0 +1,104 @@
+@inject AudioTestOrchestrator Orch
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Audio Balance</h3>
+        @if (!_playing)
+        {
+            <button class="btn btn-primary" @onclick="Start">▶ Play tone</button>
+        }
+        else
+        {
+            <button class="btn" @onclick="Stop">Stop</button>
+        }
+    </div>
+    <p class="muted">Play a tone and pan it left to right. Both speakers should sound equally loud at center, and the side you pan to should match the labelled side.</p>
+
+    <div class="balance-meter">
+        <span class="bal-end @(_pan < -0.15 ? "on" : "")">L</span>
+        <div class="bal-track">
+            <div class="bal-fill-l" style="width:@(LeftPct)%"></div>
+            <div class="bal-fill-r" style="width:@(RightPct)%"></div>
+            <div class="bal-knob" style="left:@(KnobPct)%"></div>
+        </div>
+        <span class="bal-end @(_pan > 0.15 ? "on" : "")">R</span>
+    </div>
+
+    <input class="bal-slider" type="range" min="-100" max="100" step="1"
+           value="@((int)(_pan * 100))" @oninput="OnSlider" disabled="@(!_playing)" />
+
+    <div class="test-toolbar" style="justify-content:center; margin-top:1rem">
+        <button class="btn btn-ghost" @onclick="@(() => Quick(-1))" disabled="@(!_playing)">◀ Left only</button>
+        <button class="btn btn-ghost" @onclick="@(() => Quick(0))" disabled="@(!_playing)">● Center</button>
+        <button class="btn btn-ghost" @onclick="@(() => Quick(1))" disabled="@(!_playing)">Right only ▶</button>
+        <button class="btn btn-ghost" @onclick="Sweep" disabled="@(!_playing || _sweeping)">@(_sweeping ? "Sweeping…" : "↔ Auto sweep")</button>
+    </div>
+
+    <div class="result-grid">
+        <MetricCard Label="Pan" Value="@PanLabel" />
+        <MetricCard Label="Left" Value="@LeftPct.ToString("0")" Unit="%" />
+        <MetricCard Label="Right" Value="@RightPct.ToString("0")" Unit="%" />
+    </div>
+</div>
+
+@code {
+    private bool _playing;
+    private bool _sweeping;
+    private double _pan;
+    private System.Threading.Timer? _sweepTimer;
+    private double _sweepT;
+
+    private double LeftPct => Math.Round((1 - Math.Max(0, _pan)) * 100);
+    private double RightPct => Math.Round((1 + Math.Min(0, _pan)) * 100);
+    private double KnobPct => (_pan + 1) / 2 * 100;
+    private string PanLabel => Math.Abs(_pan) < 0.05 ? "Center" : _pan < 0 ? $"{Math.Abs(_pan) * 100:0}% L" : $"{_pan * 100:0}% R";
+
+    private async Task Start()
+    {
+        _playing = true; _pan = 0;
+        await Orch.StartBalanceToneAsync(440);
+    }
+
+    private async Task Stop()
+    {
+        StopSweep();
+        _playing = false;
+        await Orch.StopAsync();
+    }
+
+    private async Task OnSlider(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out var v)) { _pan = v / 100.0; await Orch.SetPanAsync(_pan); }
+    }
+
+    private async Task Quick(double pan)
+    {
+        StopSweep();
+        _pan = pan;
+        await Orch.SetPanAsync(_pan);
+    }
+
+    private void Sweep()
+    {
+        _sweeping = true; _sweepT = 0;
+        _sweepTimer = new System.Threading.Timer(_ => SweepTick(), null, 40, 40);
+    }
+
+    private async void SweepTick()
+    {
+        _sweepT += 0.04;
+        _pan = Math.Sin(_sweepT * 1.3);   // oscillate L<->R
+        try { await Orch.SetPanAsync(_pan); } catch { }
+        if (_sweepT > 10) StopSweep();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void StopSweep() { _sweepTimer?.Dispose(); _sweepTimer = null; _sweeping = false; }
+
+    public void Dispose()
+    {
+        _sweepTimer?.Dispose();
+        if (_playing) { try { _ = Orch.StopAsync(); } catch { } }
+    }
+}

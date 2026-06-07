@@ -3,6 +3,7 @@ using Microsoft.JSInterop;
 using BenchRig.App.Core.Interfaces;
 using BenchRig.App.Core.Models.Network;
 using BenchRig.App.Core.Models.Chatbot;
+using BenchRig.App.Core.Models.Donations;
 
 namespace BenchRig.App.Services.JsInterop;
 
@@ -40,8 +41,11 @@ public sealed class StripeJsInterop : ModuleInteropBase, IJsStripeBridge
 {
     public StripeJsInterop(IJSRuntime js) : base(js, "./js/stripe-interop.js") { }
 
-    public async Task RedirectToCheckoutAsync(int amountCents)
-        => await (await ModuleAsync()).InvokeVoidAsync("redirectToCheckout", amountCents);
+    public async Task<DonationOptions> GetOptionsAsync()
+        => await (await ModuleAsync()).InvokeAsync<DonationOptions>("getDonationOptions");
+
+    public async Task<bool> OpenAsync(string url)
+        => await (await ModuleAsync()).InvokeAsync<bool>("openDonation", url);
 }
 
 public sealed class ChatbotJsInterop : ModuleInteropBase, IJsChatbotBridge

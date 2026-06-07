@@ -4,6 +4,9 @@
 @implements IDisposable
 
 <header class="topbar">
+    <button class="tb-menu" title="Menu" @onclick="() => OnMenu.InvokeAsync()">
+        <span></span><span></span><span></span>
+    </button>
     <div class="tb-title">
         <h2>@PageTitle</h2>
         <span class="muted tb-sub">Hardware &amp; Network Diagnostic Suite</span>
@@ -33,6 +36,8 @@
 </header>
 
 @code {
+    [Parameter] public EventCallback OnMenu { get; set; }
+
     private string PageTitle => TitleForPath(new Uri(Nav.Uri).AbsolutePath.TrimEnd('/'));
 
     private static string TitleForPath(string path) => path switch

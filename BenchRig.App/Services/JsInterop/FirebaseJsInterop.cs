@@ -60,6 +60,9 @@ public sealed class FirestoreJsInterop : ModuleInteropBase, IJsFirestoreBridge
         => await (await ModuleAsync()).InvokeAsync<List<T>>("queryCollection", collectionPath, filter)
            ?? new List<T>();
 
+    public async Task<int> CountCollectionAsync(string collectionPath)
+        => await (await ModuleAsync()).InvokeAsync<int>("countCollection", collectionPath);
+
     public async Task<string> SubscribeToDocumentAsync<TCallback>(string documentPath, DotNetObjectReference<TCallback> callbackRef, string callbackMethodName) where TCallback : class
         => await (await ModuleAsync()).InvokeAsync<string>("subscribeToDocument", documentPath, callbackRef, callbackMethodName);
 

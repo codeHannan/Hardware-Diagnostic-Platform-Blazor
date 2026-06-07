@@ -1,14 +1,50 @@
 @page "/audio"
 @using BenchRig.App.Components.Audio
 
-<PageTitle>Audio Diagnostics - BenchRig</PageTitle>
+<PageTitle>Audio Diagnostics | BenchRig</PageTitle>
 
 <div class="page-intro">
     <h1>Audio Diagnostics</h1>
-    <p>Verify channel routing and stereo balance with generated test tones, and check your microphone input level and loopback latency.</p>
+    <p>Check speaker routing across stereo and surround layouts, stereo balance, microphone input with live playback, and echo or latency, all via the Web Audio API.</p>
 </div>
 
-<div class="page-grid">
-    <PlaybackCheckPanel />
-    <MicLoopbackPanel />
+<div class="tabbar">
+    @foreach (var t in _tabs)
+    {
+        <button class="tab @(t.Id == _active ? "on" : "")" @onclick="() => _active = t.Id">
+            <span class="tab-ico">@t.Icon</span> @t.Name
+        </button>
+    }
 </div>
+
+<div class="tab-body" @key="_active">
+    @switch (_active)
+    {
+        case 1:
+            <PlaybackCheckPanel />
+            break;
+        case 2:
+            <BalanceCheckPanel />
+            break;
+        case 3:
+            <MicLoopbackPanel />
+            break;
+        case 4:
+            <EchoLatencyPanel />
+            break;
+    }
+</div>
+
+@code {
+    private int _active = 1;
+
+    private record Tab(int Id, string Name, string Icon);
+
+    private readonly Tab[] _tabs =
+    [
+        new(1, "Playback / Surround", "🔊"),
+        new(2, "Balance", "↔"),
+        new(3, "Microphone", "🎤"),
+        new(4, "Echo & Latency", "⟲"),
+    ];
+}

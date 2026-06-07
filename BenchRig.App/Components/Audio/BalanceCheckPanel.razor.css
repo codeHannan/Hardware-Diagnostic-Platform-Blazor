@@ -1,0 +1,8 @@
+.balance-meter { display: flex; align-items: center; gap: 1rem; margin: 1.4rem 0 1rem; }
+.bal-end { font-weight: 800; color: var(--text-2); width: 1.5rem; text-align: center; }
+.bal-end.on { color: var(--accent); }
+.bal-track { position: relative; flex: 1; height: 26px; border-radius: var(--r-pill); background: var(--bg-0); border: 1px solid var(--border); overflow: hidden; display: flex; }
+.bal-fill-l { height: 100%; background: linear-gradient(90deg, var(--accent), transparent); }
+.bal-fill-r { height: 100%; margin-left: auto; background: linear-gradient(270deg, var(--accent), transparent); }
+.bal-knob { position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--cream); box-shadow: 0 0 8px var(--glow); transition: left .05s linear; }
+.bal-slider { width: 100%; accent-color: var(--accent); }

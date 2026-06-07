@@ -1,6 +1,12 @@
-// OpenRouter chat completion bridge. System prompt enforced here (JS layer).
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "openai/gpt-oss-120b:free";
+// AI assistant bridge — Firebase AI Logic (firebase/ai) with the Gemini Developer API backend.
+// Uses the app's own Firebase project config: NO API key in the client, and the Gemini
+// Developer API backend has a free tier. Enable it once in the Firebase console
+// (Build → AI Logic → Gemini Developer API). See FIREBASE_SETUP.md.
+
+import { app } from "./firebase-config.js";
+import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
+
+const MODEL = "gemini-3.5-flash";
 
 const SYSTEM_PROMPT = `You are BenchRig Assistant, an expert technical support chatbot embedded inside a hardware and network diagnostic platform. Your ONLY purpose is to help users diagnose, troubleshoot, and resolve issues related to:
 
@@ -14,32 +20,33 @@ const SYSTEM_PROMPT = `You are BenchRig Assistant, an expert technical support c
 RULES:
 1. NEVER answer questions unrelated to hardware diagnostics or network troubleshooting.
 2. If asked about unrelated topics, respond: "I can only assist with hardware and network diagnostic topics. Please ask me about your device or connection issues!"
-3. Keep answers concise, actionable, and technically accurate.
+3. Keep answers concise, actionable, and technically accurate. Use short markdown bullet points where helpful.
 4. When possible, reference specific BenchRig diagnostic tests the user can run.
-5. Never generate code, write essays, tell stories, or engage in general conversation.`;
+5. Never write essays, tell stories, or engage in general conversation.`;
+
+// Lazily build and cache the Firebase AI Logic model.
+let fbModel = null;
+function firebaseModel() {
+    if (!fbModel) {
+        const ai = getAI(app, { backend: new GoogleAIBackend() });
+        fbModel = getGenerativeModel(ai, { model: MODEL, systemInstruction: SYSTEM_PROMPT });
+    }
+    return fbModel;
+}
 
 export async function sendChatMessage(userMessage, history) {
-    const messages = [
-        { role: "system", content: SYSTEM_PROMPT },
-        ...(history || []).map(m => ({ role: m.role, content: m.content })),
-        { role: "user", content: userMessage }
-    ];
-
-    const response = await fetch(OPENROUTER_API_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "HTTP-Referer": window.location.origin,
-            "X-Title": "BenchRig Diagnostic Platform"
-        },
-        body: JSON.stringify({ model: MODEL, messages, max_tokens: 1024, temperature: 0.4 })
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+    try {
+        const model = firebaseModel();
+        const chat = model.startChat({
+            history: (history || []).map(m => ({
+                role: m.role === "assistant" ? "model" : "user",
+                parts: [{ text: m.content }],
+            })),
+        });
+        const result = await chat.sendMessage(userMessage);
+        return result.response.text();
+    } catch (e) {
+        const msg = (e && e.message) ? e.message : String(e);
+        throw new Error(`Firebase AI Logic error: ${msg}`);
     }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content ?? "I'm unable to respond right now. Please try again.";
 }

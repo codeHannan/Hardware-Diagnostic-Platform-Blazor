@@ -4,37 +4,15 @@
 
 <div class="card speedtest">
     <div class="st-serverbar">
-        <div class="st-srv-info">
-            <span class="st-srv-label">Test server</span>
-            <select class="select st-srv-select" disabled="@State.IsRunning"
-                    value="@State.SelectedServer?.Key" @onchange="OnServerChange">
-                @if (State.Servers.Count == 0)
-                {
-                    <option>Loading servers…</option>
-                }
-                else
-                {
-                    @foreach (var s in State.Servers)
-                    {
-                        <option value="@s.Key">@s.Name@(string.IsNullOrEmpty(s.Location) ? "" : $" · {s.Location}")</option>
-                    }
-                }
-            </select>
-            <button class="btn btn-ghost st-add-toggle" @onclick="() => _showAdd = !_showAdd" disabled="@State.IsRunning">+ Add</button>
+        <span class="st-srv-icon">◇</span>
+        <div class="st-srv-text">
+            <span class="st-srv-name">Test server · Cloudflare global edge</span>
+            <span class="st-srv-desc">
+                Your speed is measured against <b>Cloudflare's anycast edge network</b>, one of the largest on
+                the internet. It automatically routes to the data centre nearest you, so the result reflects
+                your real connection (your ISP line and any congestion), not a slow test server.
+            </span>
         </div>
-        @if (_showAdd)
-        {
-            <div class="st-add fade-in">
-                <input class="input" @bind="_addName" placeholder="Name (e.g. My VPS)" />
-                <input class="input" @bind="_addUrl" placeholder="https://your-host" />
-                <select class="select" @bind="_addKind" style="width:auto">
-                    <option value="ls">LibreSpeed</option>
-                    <option value="worker">BenchRig Worker</option>
-                </select>
-                <button class="btn btn-primary" @onclick="AddServer" disabled="@_adding">Add</button>
-                <p class="muted st-add-hint">Server must send CORS headers (Access-Control-Allow-Origin). See /cloudflare-worker to deploy your own.</p>
-            </div>
-        }
     </div>
 
     <div class="st-stage">
@@ -68,7 +46,7 @@
         {
             <div class="st-conn"><span class="st-conn-label">Provider</span><span class="st-conn-val">@Dash(info.Isp)</span></div>
             <div class="st-conn"><span class="st-conn-label">Public IP</span><span class="st-conn-val mono">@Dash(info.PublicIp)</span></div>
-            <div class="st-conn"><span class="st-conn-label">Server</span><span class="st-conn-val">@(State.SelectedServer?.Name ?? "—")</span></div>
+            <div class="st-conn"><span class="st-conn-label">Server</span><span class="st-conn-val">Cloudflare edge</span></div>
         }
         else
         {
@@ -81,30 +59,10 @@
     protected override void OnInitialized() => State.OnChange += StateHasChanged;
     public void Dispose() => State.OnChange -= StateHasChanged;
 
-    private bool _showAdd;
-    private bool _adding;
-    private string _addName = "";
-    private string _addUrl = "";
-    private string _addKind = "ls";
-
     private async Task Run() => await Orch.RunFullTestAsync();
-    private void OnServerChange(ChangeEventArgs e) => State.SelectServer(e.Value?.ToString() ?? "cf");
-
-    private async Task AddServer()
-    {
-        if (string.IsNullOrWhiteSpace(_addUrl)) return;
-        _adding = true;
-        try
-        {
-            await Orch.AddCustomServerAsync(string.IsNullOrWhiteSpace(_addName) ? "Custom server" : _addName.Trim(), _addUrl.Trim(), _addKind);
-            _addName = _addUrl = "";
-            _showAdd = false;
-        }
-        finally { _adding = false; }
-    }
 
     private static string Fmt(double v) => v <= 0 ? "0.0" : v.ToString("0.0");
-    private static string Dash(string s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
+    private static string Dash(string s) => string.IsNullOrWhiteSpace(s) ? "N/A" : s;
     private string Active(SpeedPhase p) => State.Phase == p && State.IsRunning ? "on" : "";
 
     private double GaugeValue => State.Phase switch

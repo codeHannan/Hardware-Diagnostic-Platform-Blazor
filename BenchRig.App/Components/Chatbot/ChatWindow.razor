@@ -1,4 +1,4 @@
-﻿@inject ChatbotState State
+@inject ChatbotState State
 @inject IJsChatbotBridge Bridge
 @implements IDisposable
 
@@ -6,19 +6,26 @@
     <div class="chat-header">
         <span class="ch-dot"></span>
         <span class="ch-title">BenchRig Assistant</span>
-        <span class="muted ch-model">gpt-oss-120b</span>
+        <span class="muted ch-model">Firebase AI</span>
     </div>
 
     <div class="chat-body">
         @if (State.Messages.Count == 0)
         {
-            <div class="chat-empty">
-                Ask me about network, mouse, keyboard, audio, monitor, or CPU/GPU issues.
-            </div>
+            <div class="chat-empty">Ask me about network, mouse, keyboard, audio, monitor, or CPU/GPU issues.</div>
         }
         @foreach (var m in State.Messages)
         {
-            <div class="msg @(m.Role == "user" ? "msg-user" : "msg-bot")">@m.Content</div>
+            <div class="msg @(m.Role == "user" ? "msg-user" : "msg-bot")">
+                @if (m.Role == "user")
+                {
+                    @m.Content
+                }
+                else
+                {
+                    <MarkdownRenderer Content="@m.Content" />
+                }
+            </div>
         }
         @if (State.IsLoading)
         {
@@ -41,8 +48,7 @@
 
     private async Task OnKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_draft))
-            await Send();
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_draft)) await Send();
     }
 
     private async Task Send()
@@ -59,7 +65,19 @@
         }
         catch (Exception ex)
         {
-            State.SetError($"Assistant unavailable: {ex.Message}");
+            State.SetError($"Couldn't reach the assistant. {Clean(ex.Message)}");
         }
+    }
+
+    // The JSException message includes the JS error text + stack trace; keep just the message.
+    private static string Clean(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "Please try again.";
+        int nl = s.IndexOf('\n');
+        if (nl > 0) s = s[..nl];
+        int at = s.IndexOf(" at ", StringComparison.Ordinal);
+        if (at > 0) s = s[..at];
+        s = s.Replace("Error: ", "").Trim();
+        return s.Length > 180 ? s[..180] + "…" : s;
     }
 }

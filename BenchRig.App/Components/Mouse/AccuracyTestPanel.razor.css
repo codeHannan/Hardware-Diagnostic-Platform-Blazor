@@ -1,0 +1,14 @@
+.acc-stage {
+    position: relative; overflow: hidden;
+    border: 1px dashed var(--border); border-radius: var(--r-md); background: var(--bg-0);
+    height: 340px; user-select: none; cursor: crosshair; touch-action: none;
+    display: grid; place-items: center;
+}
+.acc-target {
+    position: absolute; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%;
+    background: radial-gradient(circle, var(--cream) 0 18%, var(--accent) 19% 42%, transparent 43%);
+    border: 2px solid var(--accent); box-shadow: 0 0 14px var(--glow); animation: fade-in .12s ease;
+    pointer-events: none;   /* clicks fall through to the stage so OffsetX is stage-relative */
+}
+.acc-counter { position: absolute; top: .6rem; right: .8rem; font-family: var(--mono); color: var(--text-2); font-size: .8rem; pointer-events: none; }
+.acc-summary { text-align: center; }

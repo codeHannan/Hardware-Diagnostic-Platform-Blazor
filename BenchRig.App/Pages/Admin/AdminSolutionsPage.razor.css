@@ -1,0 +1,50 @@
+/* ── Layout: list + editor ── */
+.kb-admin { display: grid; grid-template-columns: 1fr 400px; gap: 1.4rem; align-items: start; }
+.kb-admin-list { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.kb-admin-listhead { display: flex; align-items: center; gap: .8rem; }
+.kb-admin-listhead .input { flex: 1; }
+.kb-admin-stats { font-size: .76rem; white-space: nowrap; }
+
+/* ── List items ── */
+.kb-admin-item { transition: border-color .12s ease; }
+.kb-admin-item.editing { border-color: var(--accent); }
+.kb-admin-item-head { display: flex; justify-content: space-between; gap: .6rem; }
+.kb-admin-badges { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.kb-admin-date { font-size: .74rem; }
+.kb-admin-title { margin: .5rem 0 .2rem; font-size: 1.05rem; }
+.kb-admin-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .9rem; }
+.kb-admin-confirm { font-size: .82rem; color: var(--bad); font-weight: 600; }
+
+/* ── Buttons ── */
+.btn-sm { padding: .35rem .7rem; font-size: .8rem; }
+.kb-del-trigger:hover { color: var(--bad); border-color: var(--bad); }
+.kb-del { background: var(--bad); border-color: var(--bad); color: #fff; }
+.kb-del:hover { filter: brightness(1.08); }
+
+/* ── Editor ── */
+.kb-admin-editor { position: sticky; top: 1rem; }
+.kb-lbl { margin-top: .8rem; display: block; }
+.kb-body-head { display: flex; align-items: center; justify-content: space-between; margin-top: .8rem; }
+.kb-body-head .kb-lbl { margin-top: 0; }
+.kb-toggle {
+    background: var(--surface-1); border: 1px solid var(--border); color: var(--text-1);
+    font-size: .76rem; font-weight: 600; padding: .25rem .7rem; border-radius: var(--r-pill); cursor: pointer;
+    transition: all .12s ease;
+}
+.kb-toggle:hover { border-color: var(--accent); color: var(--cream); }
+.kb-toggle.on { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--text-on-accent); border-color: transparent; }
+.kb-body { min-height: 200px; margin-top: .3rem; font-family: var(--mono); font-size: .86rem; }
+.kb-preview {
+    margin-top: .3rem; min-height: 200px; padding: .9rem 1rem;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.kb-editor-actions { margin-top: 1rem; }
+.kb-hint { font-size: .74rem; margin-top: .7rem; }
+.kb-msg { font-size: .82rem; margin: .8rem 0 0; font-weight: 600; }
+.kb-msg.ok { color: var(--ok); }
+.kb-msg.bad { color: var(--bad); }
+
+@media (max-width: 1000px) {
+    .kb-admin { grid-template-columns: 1fr; }
+    .kb-admin-editor { position: static; }
+}

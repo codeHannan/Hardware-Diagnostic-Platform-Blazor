@@ -37,10 +37,21 @@ public sealed class AudioJsInterop : ModuleInteropBase, IJsAudioBridge
 {
     public AudioJsInterop(IJSRuntime js) : base(js, "./js/audio-interop.js") { }
 
-    public async Task PlayTestToneAsync(string channelAudioPath, string outputChannelId)
-        => await (await ModuleAsync()).InvokeVoidAsync("playTestTone", channelAudioPath, outputChannelId);
+    public async Task<int> GetMaxChannelsAsync()
+        => await (await ModuleAsync()).InvokeAsync<int>("getMaxChannels");
+    public async Task PlayChannelToneAsync(int channelIndex, int totalChannels, int freq)
+        => await (await ModuleAsync()).InvokeVoidAsync("playChannelTone", channelIndex, totalChannels, freq);
+    public async Task PlayPannedToneAsync(double pan, int freq)
+        => await (await ModuleAsync()).InvokeVoidAsync("playPannedTone", pan, freq);
+    public async Task StartBalanceToneAsync(int freq)
+        => await (await ModuleAsync()).InvokeVoidAsync("startBalanceTone", freq);
+    public async Task SetPanAsync(double pan)
+        => await (await ModuleAsync()).InvokeVoidAsync("setPan", pan);
+    public async Task StartSpatialSweepAsync()
+        => await (await ModuleAsync()).InvokeVoidAsync("startSpatialSweep");
     public async Task StopPlaybackAsync()
         => await (await ModuleAsync()).InvokeVoidAsync("stopPlayback");
+
     public async Task<bool> StartMicCaptureAsync()
         => await (await ModuleAsync()).InvokeAsync<bool>("startMicCapture");
     public async Task StopMicCaptureAsync()
@@ -49,10 +60,15 @@ public sealed class AudioJsInterop : ModuleInteropBase, IJsAudioBridge
         => await (await ModuleAsync()).InvokeVoidAsync("startLoopback");
     public async Task StopLoopbackAsync()
         => await (await ModuleAsync()).InvokeVoidAsync("stopLoopback");
-    public async Task<double> MeasureEchoLatencyAsync()
-        => await (await ModuleAsync()).InvokeAsync<double>("measureEchoLatency");
     public async Task<double> GetMicLevelDbAsync()
         => await (await ModuleAsync()).InvokeAsync<double>("getMicLevelDb");
+    public async Task<int[]> GetMicWaveformAsync()
+        => await (await ModuleAsync()).InvokeAsync<int[]>("getMicWaveform") ?? [];
+
+    public async Task<double> MeasureEchoLatencyAsync()
+        => await (await ModuleAsync()).InvokeAsync<double>("measureEchoLatency");
+    public async Task<double> GetSystemLatencyAsync()
+        => await (await ModuleAsync()).InvokeAsync<double>("getSystemLatency");
 }
 
 public sealed class MonitorJsInterop : ModuleInteropBase, IJsMonitorBridge
@@ -63,39 +79,73 @@ public sealed class MonitorJsInterop : ModuleInteropBase, IJsMonitorBridge
         => await (await ModuleAsync()).InvokeVoidAsync("enterFullscreen", elementId);
     public async Task ExitFullscreenAsync()
         => await (await ModuleAsync()).InvokeVoidAsync("exitFullscreen");
-    public async Task<double> MeasureFrameRateAsync(int sampleFrames)
-        => await (await ModuleAsync()).InvokeAsync<double>("measureFrameRate", sampleFrames);
-    public async Task StartGhostingAnimationAsync(string canvasId, double speedPxPerFrame)
-        => await (await ModuleAsync()).InvokeVoidAsync("startGhosting", canvasId, speedPxPerFrame);
-    public async Task StopGhostingAnimationAsync(string canvasId)
-        => await (await ModuleAsync()).InvokeVoidAsync("stopGhosting", canvasId);
+    public async Task WatchFullscreenExitAsync<T>(DotNetObjectReference<T> callbackRef, string methodName) where T : class
+        => await (await ModuleAsync()).InvokeVoidAsync("watchFullscreenExit", callbackRef, methodName);
+    public async Task<double[]> MeasureFrameDeltasAsync(int durationMs)
+        => await (await ModuleAsync()).InvokeAsync<double[]>("measureFrameDeltas", durationMs) ?? [];
 }
 
 public sealed class ComputeJsInterop : ModuleInteropBase, IJsComputeBridge
 {
     public ComputeJsInterop(IJSRuntime js) : base(js, "./js/compute-interop.js") { }
 
-    public async Task<CpuBenchmarkResult> RunCpuBenchmarkAsync<T>(int threadCount, int durationSec, DotNetObjectReference<T> progressCallback) where T : class
+    public async Task<HardwareInfo> DetectHardwareAsync()
     {
-        var r = await (await ModuleAsync()).InvokeAsync<JsonElement>("runCpuBenchmark", threadCount, durationSec, progressCallback);
-        return new CpuBenchmarkResult
+        var r = await (await ModuleAsync()).InvokeAsync<JsonElement>("detectHardware");
+        return new HardwareInfo
         {
-            Score = r.GetProperty("score").GetDouble(),
-            ThreadsUsed = r.GetProperty("threadsUsed").GetInt32(),
-            DurationMs = r.GetProperty("durationMs").GetDouble(),
-            OpsPerSec = r.GetProperty("opsPerSec").GetDouble(),
+            Threads = I(r, "threads"),
+            DeviceMemoryGb = D(r, "deviceMemoryGb"),
+            GpuVendor = S(r, "gpuVendor"),
+            GpuRenderer = S(r, "gpuRenderer"),
+            Webgl2 = B(r, "webgl2"),
+            Webgpu = B(r, "webgpu"),
+            JsHeapLimitMb = I(r, "jsHeapLimitMb"),
+            UserAgent = S(r, "userAgent"),
         };
     }
 
-    public async Task<GpuBenchmarkResult> RunGpuBenchmarkAsync<T>(string canvasId, int durationSec, DotNetObjectReference<T> progressCallback) where T : class
+    public async Task<CpuBenchmarkResult> RunCpuBenchmarkAsync<T>(int threads, int durationMs, DotNetObjectReference<T> progressCallback) where T : class
     {
-        var r = await (await ModuleAsync()).InvokeAsync<JsonElement>("runGpuBenchmark", canvasId, durationSec, progressCallback);
-        return new GpuBenchmarkResult
+        var r = await (await ModuleAsync()).InvokeAsync<JsonElement>("runCpuBenchmark", threads, durationMs, progressCallback);
+        return new CpuBenchmarkResult
         {
-            Score = r.GetProperty("score").GetDouble(),
-            AvgFps = r.GetProperty("avgFps").GetDouble(),
-            ShaderComplexity = r.GetProperty("shaderComplexity").GetInt32(),
-            VramEstimateMb = r.GetProperty("vramEstimateMb").GetDouble(),
+            SingleUps = D(r, "singleUps"),
+            MultiUps = D(r, "multiUps"),
+            ThreadsUsed = I(r, "threads"),
+            DurationMs = D(r, "durationMs"),
         };
     }
+
+    public async Task<GpuBenchmarkResult> RunGpuBenchmarkAsync<T>(string canvasId, int width, int height, int complexity, int durationMs, DotNetObjectReference<T> progressCallback) where T : class
+    {
+        var r = await (await ModuleAsync()).InvokeAsync<JsonElement>("runGpuBenchmark", canvasId, width, height, complexity, durationMs, progressCallback);
+        return new GpuBenchmarkResult
+        {
+            AvgFps = D(r, "avgFps"),
+            Frames = I(r, "frames"),
+            Width = I(r, "width"),
+            Height = I(r, "height"),
+            Complexity = I(r, "complexity"),
+            Supported = B(r, "supported"),
+        };
+    }
+
+    public async Task<MemoryBenchmarkResult> RunMemoryTestAsync<T>(int targetMb, DotNetObjectReference<T> progressCallback) where T : class
+    {
+        var r = await (await ModuleAsync()).InvokeAsync<JsonElement>("runMemoryTest", targetMb, progressCallback);
+        return new MemoryBenchmarkResult
+        {
+            PeakMb = D(r, "peakMb"),
+            Oom = B(r, "oom"),
+            WriteGBs = D(r, "writeGBs"),
+            ReadGBs = D(r, "readGBs"),
+            HeapLimitMb = I(r, "heapLimitMb"),
+        };
+    }
+
+    private static string S(JsonElement e, string p) => e.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
+    private static double D(JsonElement e, string p) => e.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
+    private static int I(JsonElement e, string p) => e.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : 0;
+    private static bool B(JsonElement e, string p) => e.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.True;
 }

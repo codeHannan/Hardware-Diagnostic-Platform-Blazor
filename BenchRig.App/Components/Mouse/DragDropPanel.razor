@@ -1,0 +1,103 @@
+<div class="card">
+    <div class="panel-head">
+        <h3>Drag &amp; Drop Check</h3>
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+    </div>
+    <p class="muted">Press and hold the handle, drag it into the target, and release. If your switch drops the click mid-drag, the attempt is flagged as interrupted.</p>
+
+    <div class="dd-stage" @onpointermove="OnMove" @onpointerup="OnUp" @onpointerleave="OnUp">
+        <div class="dd-handle @(_dragging ? "dragging" : "")" style="left:@(_hx)px; top:@(_hy)px"
+             @onpointerdown="OnDown" @onpointerdown:stopPropagation="true">⠿</div>
+        <div class="dd-target @(_lastSuccess == true ? "hit" : "")" style="left:@(_tx)px; top:@(_ty)px">
+            <span>drop here</span>
+        </div>
+        @if (_lastResult is not null)
+        {
+            <div class="dd-flash @(_lastSuccess == true ? "ok" : "bad")">@_lastResult</div>
+        }
+    </div>
+
+    <div class="result-grid">
+        <MetricCard Label="Attempts" Value="@_attempts.ToString()" />
+        <MetricCard Label="Successful" Value="@_success.ToString()" />
+        <MetricCard Label="Interrupted" Value="@_interrupted.ToString()" Sub="@(_interrupted > 0 ? "check switch" : "")" />
+        <MetricCard Label="Last drop offset" Value="@(_lastOffset >= 0 ? _lastOffset.ToString("0") : "N/A")" Unit="px" />
+    </div>
+</div>
+
+@code {
+    private double _hx = 60, _hy = 150;
+    private double _tx = 420, _ty = 150;
+    private const double TargetR = 44;
+    private bool _dragging;
+    private int _attempts, _success, _interrupted;
+    private bool? _lastSuccess;
+    private string? _lastResult;
+    private double _lastOffset = -1;
+
+    private void OnDown(PointerEventArgs e)
+    {
+        _dragging = true;
+        _lastResult = null;
+        _lastSuccess = null;
+    }
+
+    private void OnMove(PointerEventArgs e)
+    {
+        if (!_dragging) return;
+        // Buttons bitmask 0 means no button held -> the switch dropped mid-drag.
+        if (e.Buttons == 0)
+        {
+            EndDrag(e, interruptedMidair: true);
+            return;
+        }
+        _hx = e.OffsetX;
+        _hy = e.OffsetY;
+    }
+
+    private void OnUp(PointerEventArgs e)
+    {
+        if (!_dragging) return;
+        EndDrag(e, interruptedMidair: false);
+    }
+
+    private void EndDrag(PointerEventArgs e, bool interruptedMidair)
+    {
+        _dragging = false;
+        _attempts++;
+        double dx = _hx - _tx, dy = _hy - _ty;
+        double dist = Math.Sqrt(dx * dx + dy * dy);
+        bool onTarget = dist <= TargetR;
+
+        if (interruptedMidair)
+        {
+            _interrupted++;
+            _lastSuccess = false;
+            _lastResult = "Click dropped mid-drag!";
+            _lastOffset = -1;
+        }
+        else if (onTarget)
+        {
+            _success++;
+            _lastSuccess = true;
+            _lastOffset = dist;
+            _lastResult = "Dropped on target";
+            // snap handle back for another go
+            _hx = 60; _hy = 150;
+        }
+        else
+        {
+            _lastSuccess = false;
+            _lastOffset = dist;
+            _lastResult = "Missed the target";
+            _hx = 60; _hy = 150;
+        }
+    }
+
+    private void Reset()
+    {
+        _attempts = _success = _interrupted = 0;
+        _lastResult = null; _lastSuccess = null; _lastOffset = -1;
+        _hx = 60; _hy = 150; _dragging = false;
+    }
+}

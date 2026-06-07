@@ -1,13 +1,14 @@
 @inject AuthStateContainer Auth
 @implements IDisposable
 
-<aside class="sidebar">
+<aside class="sidebar @(Open ? "open" : "")">
     <div class="brand">
         <span class="brand-mark">◆</span>
         <span class="brand-text">Bench<span class="brand-accent">Rig</span></span>
+        <button class="brand-close" title="Close menu" @onclick="() => OnNavigate.InvokeAsync()">✕</button>
     </div>
 
-    <nav class="nav">
+    <nav class="nav" @onclick="() => OnNavigate.InvokeAsync()">
         <div class="nav-group">Overview</div>
         <NavLink class="nav-item" href="@AppRoutes.Home" Match="NavLinkMatch.All">
             <span class="ni-icon">▦</span> Dashboard
@@ -36,14 +37,12 @@
             <NavLink class="nav-item" href="@AppRoutes.AdminSolutions"><span class="ni-icon">✎</span> Articles</NavLink>
         }
     </nav>
-
-    <div class="sidebar-foot">
-        <span class="badge">v1.0</span>
-        <span class="muted">.NET 10 · WASM</span>
-    </div>
 </aside>
 
 @code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback OnNavigate { get; set; }
+
     protected override void OnInitialized() => Auth.OnChange += StateHasChanged;
     public void Dispose() => Auth.OnChange -= StateHasChanged;
 }

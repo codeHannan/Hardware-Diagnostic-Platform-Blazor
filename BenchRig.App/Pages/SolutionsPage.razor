@@ -1,62 +1,168 @@
 @page "/solutions"
+@page "/solutions/{Id}"
 @inject IJsFirestoreBridge Firestore
+@inject NavigationManager Nav
+@inject IJSRuntime JS
 
-<PageTitle>Knowledge Base - BenchRig</PageTitle>
+<PageTitle>Knowledge Base | BenchRig</PageTitle>
 
 <div class="page-intro">
     <h1>Knowledge Base</h1>
     <p>Curated troubleshooting guides for common hardware and network problems.</p>
 </div>
 
-<div class="kb-toolbar">
-    <input class="input" @bind="_search" @bind:event="oninput" placeholder="Search articles..." />
-    <select class="select" @bind="_category" style="width:auto">
-        <option value="">All categories</option>
-        @foreach (var c in _categories)
-        {
-            <option value="@c">@c</option>
-        }
-    </select>
-</div>
-
 @if (_loading)
 {
-    <LoadingSpinner Text="Loading articles..." />
+    <LoadingSpinner Text="Loading articles…" />
 }
-else if (_selected is { } article)
+else if (_error is { } err)
 {
-    <a class="btn btn-ghost" @onclick="() => _selected = null">← Back to list</a>
-    <article class="card fade-in" style="margin-top:1rem">
-        <span class="badge">@article.Category</span>
-        <h1>@article.Title</h1>
-        <MarkdownRenderer Content="@article.Body" />
-    </article>
+    <ConnectionError Message="@err" OnRetry="Reload" />
 }
-else if (Filtered.Count == 0)
+else if (!string.IsNullOrEmpty(Id))
 {
-    <div class="card"><p class="muted">No published articles match your search yet.</p></div>
+    @if (_selected is { } article)
+    {
+        <button class="btn btn-ghost kb-back" @onclick="BackToList">← Back to all articles</button>
+        <article class="card fade-in kb-article">
+            <div class="kb-art-head">
+                <span class="badge">@CategoryLabel(article.Category)</span>
+                <button class="kb-copy @(_copied ? "ok" : "")" @onclick="() => CopyLink(article)">
+                    @(_copied ? "✓ Link copied" : "🔗 Copy link")
+                </button>
+            </div>
+            <h1>@article.Title</h1>
+            <p class="muted kb-meta">
+                @(string.IsNullOrWhiteSpace(article.AuthorName) ? "BenchRig Team" : article.AuthorName)
+                @if (article.UpdatedAt is { } u) { <span> · updated @u.ToLocalTime().ToString("MMM d, yyyy")</span> }
+                <span> · @ReadMins(article.Body) min read</span>
+            </p>
+            @if (article.Tags.Count > 0)
+            {
+                <div class="chip-list">
+                    @foreach (var t in article.Tags)
+                    {
+                        <button class="keychip kb-tag" @onclick="() => FilterByTag(t)">#@t</button>
+                    }
+                </div>
+            }
+            <MarkdownRenderer Content="@article.Body" />
+        </article>
+
+        @if (Related(article) is { Count: > 0 } related)
+        {
+            <h3 class="cmp-title">Related articles</h3>
+            <div class="page-grid">
+                @foreach (var a in related)
+                {
+                    <button class="kb-card" @onclick="() => Open(a)">
+                        <span class="badge">@CategoryLabel(a.Category)</span>
+                        <h3>@a.Title</h3>
+                        <p class="muted">@Preview(a.Body)</p>
+                    </button>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card kb-notfound">
+            <h2>Article not found</h2>
+            <p class="muted">This article may have been unpublished or removed.</p>
+            <button class="btn btn-primary" @onclick="BackToList">← Back to all articles</button>
+        </div>
+    }
 }
 else
 {
-    <div class="page-grid">
-        @foreach (var a in Filtered)
+    <div class="kb-toolbar">
+        <div class="kb-search">
+            <input class="input" @bind="_search" @bind:event="oninput" placeholder="Search title, body, or tags…" />
+            @if (!string.IsNullOrEmpty(_search))
+            {
+                <button class="kb-search-clear" title="Clear search" @onclick='() => _search = ""'>×</button>
+            }
+        </div>
+        <select class="select kb-sort" @bind="_sort">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="az">Title A–Z</option>
+        </select>
+        <button class="btn btn-ghost" @onclick="Reload">↻ Refresh</button>
+    </div>
+
+    <div class="kb-chips">
+        <button class="kb-chip @(_category == "" ? "on" : "")" @onclick='() => _category = ""'>All <span class="kb-n">@_articles.Count</span></button>
+        @foreach (var c in PresentCategories)
         {
-            <button class="kb-card" @onclick="() => _selected = a">
-                <span class="badge">@a.Category</span>
-                <h3>@a.Title</h3>
-                <p class="muted">@Preview(a.Body)</p>
-            </button>
+            <button class="kb-chip @(_category == c ? "on" : "")" @onclick="() => _category = c">@CategoryLabel(c) <span class="kb-n">@CountFor(c)</span></button>
         }
     </div>
+
+    @if (AllTags.Count > 0)
+    {
+        <div class="kb-chips kb-tagrow">
+            <span class="kb-tagrow-label">Tags:</span>
+            <button class="kb-chip sm @(_tag is null ? "on" : "")" @onclick="() => _tag = null">Any</button>
+            @foreach (var t in AllTags)
+            {
+                <button class="kb-chip sm @(_tag == t ? "on" : "")" @onclick="() => _tag = t">#@t</button>
+            }
+        </div>
+    }
+
+    @if (Filtered.Count == 0)
+    {
+        <div class="card kb-empty">
+            @if (_articles.Count == 0)
+            {
+                <p class="muted">No published articles yet. Admins can add them from <a href="@AppRoutes.AdminSolutions">Admin → Knowledge Base</a>.</p>
+            }
+            else
+            {
+                <p class="muted">No articles match your filters.</p>
+                <button class="btn btn-ghost" @onclick="ResetFilters">Clear filters</button>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="kb-count-row">
+            <p class="muted kb-count">@Filtered.Count of @_articles.Count article@(_articles.Count == 1 ? "" : "s")</p>
+            @if (HasActiveFilters)
+            {
+                <button class="kb-reset" @onclick="ResetFilters">Clear filters</button>
+            }
+        </div>
+        <div class="page-grid">
+            @foreach (var a in Filtered)
+            {
+                <button class="kb-card" @onclick="() => Open(a)">
+                    <span class="badge">@CategoryLabel(a.Category)</span>
+                    <h3>@a.Title</h3>
+                    <p class="muted kb-card-preview">@Preview(a.Body)</p>
+                    <div class="kb-card-foot">
+                        <span class="muted">@ReadMins(a.Body) min read</span>
+                        @if (a.UpdatedAt is { } u) { <span class="muted">· @u.ToLocalTime().ToString("MMM d, yyyy")</span> }
+                    </div>
+                </button>
+            }
+        </div>
+    }
 }
 
 @code {
+    [Parameter] public string? Id { get; set; }
+
     private sealed record ArticleDto
     {
         public string Id { get; init; } = "";
         public string Title { get; init; } = "";
         public string Body { get; init; } = "";
         public string Category { get; init; } = "general";
+        public string AuthorName { get; init; } = "";
+        public IReadOnlyList<string> Tags { get; init; } = [];
+        public DateTime? UpdatedAt { get; init; }
         public bool IsPublished { get; init; }
     }
 
@@ -64,27 +170,150 @@ else
     private ArticleDto? _selected;
     private string _search = "";
     private string _category = "";
+    private string? _tag;
+    private string _sort = "newest";
     private bool _loading = true;
+    private string? _error;
+    private bool _copied;
 
-    private readonly string[] _categories = ["network", "mouse", "keyboard", "audio", "monitor", "compute", "general"];
+    private static readonly string[] CatOrder =
+        ["network", "mouse", "keyboard", "audio", "monitor", "compute", "general"];
+
+    private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
 
     protected override async Task OnInitializedAsync()
     {
+        await Load();
+        Resolve();
+    }
+
+    protected override void OnParametersSet() => Resolve();
+
+    private async Task Load()
+    {
+        _loading = true; _error = null;
         try
         {
-            var all = await Firestore.QueryCollectionAsync<ArticleDto>(FirestoreCollections.SolutionArticles);
-            _articles = all.Where(a => a.IsPublished).ToList();
+            // Only published articles leave the server (drafts stay private + lighter payload).
+            var published = await Firestore.QueryCollectionAsync<ArticleDto>(
+                FirestoreCollections.SolutionArticles,
+                new QueryFilter { WhereField = "isPublished", WhereOp = "==", WhereValue = true });
+            _articles = published;
         }
-        catch { _articles = new(); }
+        catch (Exception ex)
+        {
+            _error = ex.Message.Contains("UNREACHABLE", OIC) || ex.Message.Contains("timed out", OIC)
+                ? "The Firestore database didn't respond in time."
+                : "Couldn't load articles from Firestore.";
+        }
         finally { _loading = false; }
     }
 
-    private List<ArticleDto> Filtered => _articles
-        .Where(a => string.IsNullOrEmpty(_category) || a.Category == _category)
-        .Where(a => string.IsNullOrWhiteSpace(_search)
-                    || a.Title.Contains(_search, StringComparison.OrdinalIgnoreCase)
-                    || a.Body.Contains(_search, StringComparison.OrdinalIgnoreCase))
-        .ToList();
+    private async Task Reload() { await Load(); Resolve(); }
 
-    private static string Preview(string body) => body.Length > 120 ? body[..120] + "..." : body;
+    // Map the route's article Id to the loaded list (drafts/unknown ids fall through to "not found").
+    private void Resolve()
+    {
+        _copied = false;
+        _selected = string.IsNullOrEmpty(Id) ? null : _articles.FirstOrDefault(a => a.Id == Id);
+    }
+
+    private void Open(ArticleDto a) => Nav.NavigateTo($"{AppRoutes.Solutions}/{a.Id}");
+    private void BackToList() => Nav.NavigateTo(AppRoutes.Solutions);
+
+    private void FilterByTag(string tag)
+    {
+        _tag = tag.ToLowerInvariant();
+        Nav.NavigateTo(AppRoutes.Solutions);
+    }
+
+    private void ResetFilters() { _search = ""; _category = ""; _tag = null; }
+
+    private bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrEmpty(_category) || _tag is not null;
+
+    private async Task CopyLink(ArticleDto a)
+    {
+        try
+        {
+            var url = Nav.ToAbsoluteUri($"{AppRoutes.Solutions}/{a.Id}").ToString();
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+            _copied = true;
+        }
+        catch { _copied = false; }
+    }
+
+    // Derive categories from the actual articles (so admin-defined custom categories show up):
+    // known categories first in CatOrder order, then any custom ones alphabetically.
+    private List<string> PresentCategories =>
+        _articles.Select(a => a.Category)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.ToLowerInvariant())
+            .Distinct()
+            .OrderBy(c => { int i = Array.IndexOf(CatOrder, c); return i >= 0 ? i : int.MaxValue; })
+            .ThenBy(c => c)
+            .ToList();
+
+    private int CountFor(string c) => _articles.Count(a => string.Equals(a.Category, c, OIC));
+
+    private List<string> AllTags => _articles
+        .SelectMany(a => a.Tags).Where(t => !string.IsNullOrWhiteSpace(t))
+        .Select(t => t.ToLowerInvariant()).Distinct().OrderBy(t => t).Take(14).ToList();
+
+    private List<ArticleDto> Filtered
+    {
+        get
+        {
+            IEnumerable<ArticleDto> q = _articles;
+            if (!string.IsNullOrEmpty(_category))
+                q = q.Where(a => string.Equals(a.Category, _category, OIC));
+            if (_tag is not null)
+                q = q.Where(a => a.Tags.Any(t => string.Equals(t, _tag, OIC)));
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim();
+                q = q.Where(a => a.Title.Contains(s, OIC)
+                              || a.Body.Contains(s, OIC)
+                              || a.Tags.Any(t => t.Contains(s, OIC)));
+            }
+            q = _sort switch
+            {
+                "oldest" => q.OrderBy(a => a.UpdatedAt ?? DateTime.MinValue),
+                "az" => q.OrderBy(a => a.Title, StringComparer.OrdinalIgnoreCase),
+                _ => q.OrderByDescending(a => a.UpdatedAt ?? DateTime.MinValue),
+            };
+            return q.ToList();
+        }
+    }
+
+    // Rank related articles: shared tags weigh most, same category gives a base boost.
+    private List<ArticleDto> Related(ArticleDto a) => _articles
+        .Where(x => x.Id != a.Id)
+        .Select(x => new
+        {
+            Article = x,
+            Score = (string.Equals(x.Category, a.Category, OIC) ? 2 : 0)
+                  + a.Tags.Count(t => x.Tags.Any(xt => string.Equals(xt, t, OIC))),
+        })
+        .Where(s => s.Score > 0)
+        .OrderByDescending(s => s.Score)
+        .ThenByDescending(s => s.Article.UpdatedAt ?? DateTime.MinValue)
+        .Take(3).Select(s => s.Article).ToList();
+
+    private static string CategoryLabel(string c) =>
+        string.IsNullOrEmpty(c) ? "general" : char.ToUpperInvariant(c[0]) + c[1..];
+
+    private static int ReadMins(string body)
+    {
+        var words = body.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries).Length;
+        return Math.Max(1, (int)Math.Round(words / 200.0));
+    }
+
+    private static string Preview(string body)
+    {
+        var text = System.Text.RegularExpressions.Regex.Replace(
+            body.Replace("#", "").Replace("*", "").Replace("`", "").Replace(">", " "),
+            @"\s+", " ").Trim();
+        return text.Length > 130 ? text[..130] + "…" : text;
+    }
 }

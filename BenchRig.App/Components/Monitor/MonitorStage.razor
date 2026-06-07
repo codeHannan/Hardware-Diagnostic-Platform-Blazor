@@ -1,0 +1,239 @@
+@inject IJsMonitorBridge Monitor
+@implements IAsyncDisposable
+
+<div id="mon-stage" class="mon-stage" tabindex="0" @ref="_el" @onkeydown="OnKey">
+    <div class="mon-fill" style="@FillStyle">
+        @switch (Mode)
+        {
+            case MonitorMode.Uniformity:
+                @if (_grid)
+                {
+                    <div class="mon-grid">@for (int i = 0; i < 9; i++) { <div></div> }</div>
+                }
+                break;
+
+            case MonitorMode.Contrast:
+                <div class="mon-contrast">
+                    <div class="mon-contrast-row">
+                        <span class="mon-clabel">Black detail (can you see each step?)</span>
+                        <div class="mon-steps">
+                            @for (int v = 0; v <= 18; v += 2) { <div style="background:rgb(@v,@v,@v)" title="@v"></div> }
+                        </div>
+                    </div>
+                    <div class="mon-contrast-row">
+                        <span class="mon-clabel">White detail</span>
+                        <div class="mon-steps">
+                            @for (int v = 236; v <= 255; v += 2) { <div style="background:rgb(@v,@v,@v)" title="@v"></div> }
+                        </div>
+                    </div>
+                </div>
+                break;
+
+            case MonitorMode.Sharpness:
+                <div class="mon-sharp">
+                    <div class="mon-checker"></div>
+                    <div class="mon-sharp-text">
+                        <p style="font-size:28px">Sharpness 28px — the quick brown fox</p>
+                        <p style="font-size:16px">Sharpness 16px — the quick brown fox jumps over the lazy dog</p>
+                        <p style="font-size:11px">Sharpness 11px — the quick brown fox jumps over the lazy dog 0123456789</p>
+                    </div>
+                </div>
+                break;
+
+            case MonitorMode.ViewingAngle:
+                <div class="mon-angle">
+                    <div class="mon-angle-bar"></div>
+                    <span class="va-corner tl">◤</span><span class="va-corner tr">◥</span>
+                    <span class="va-corner bl">◣</span><span class="va-corner br">◢</span>
+                </div>
+                break;
+
+            case MonitorMode.Gamma:
+                <div class="mon-gamma">
+                    <div class="gamma-cols">
+                        @foreach (var g in _gammaValues)
+                        {
+                            <div class="gamma-col">
+                                <div class="gamma-lines">
+                                    <div class="gamma-solid" style="background:@GammaGray(g)"></div>
+                                </div>
+                                <span class="gamma-num">@g.ToString("0.0")</span>
+                            </div>
+                        }
+                    </div>
+                    <p class="gamma-help">Step back from the screen. The panel whose centre square blends into the striped surround is your display gamma. Most content targets 2.2.</p>
+                </div>
+                break;
+
+            case MonitorMode.Ghosting:
+            case MonitorMode.ResponseTime:
+                <div class="mon-motion">
+                    @foreach (var bg in _motionRows)
+                    {
+                        <div class="motion-row" style="background:@bg">
+                            <div class="motion-box @(Mode == MonitorMode.ResponseTime ? "sharp" : "")"
+                                 style="animation-duration:@(_durationSec.ToString(System.Globalization.CultureInfo.InvariantCulture))s"></div>
+                        </div>
+                    }
+                </div>
+                break;
+
+            case MonitorMode.RefreshBars:
+                <div class="mon-refresh">
+                    <div class="refresh-bar" style="animation-duration:@(_durationSec.ToString(System.Globalization.CultureInfo.InvariantCulture))s"></div>
+                </div>
+                break;
+        }
+    </div>
+
+    <div class="mon-bar">
+        <span class="mon-name">@Title</span>
+        @switch (Mode)
+        {
+            case MonitorMode.DeadPixel:
+            case MonitorMode.Uniformity:
+                <button class="mon-btn" @onclick="Prev">◀</button>
+                <span class="mon-cur">@CurrentColorName</span>
+                <button class="mon-btn" @onclick="Next">▶</button>
+                @if (Mode == MonitorMode.Uniformity)
+                {
+                    <button class="mon-btn" @onclick="() => _grid = !_grid">@(_grid ? "Hide grid" : "Show grid")</button>
+                }
+                break;
+            case MonitorMode.Gradient:
+                <button class="mon-btn" @onclick="Prev">◀</button>
+                <span class="mon-cur">@_gradients[_gradIndex].Name</span>
+                <button class="mon-btn" @onclick="Next">▶</button>
+                break;
+            case MonitorMode.Ghosting:
+            case MonitorMode.ResponseTime:
+            case MonitorMode.RefreshBars:
+                <span class="mon-cur">Speed</span>
+                <input type="range" min="0.6" max="6" step="0.2" value="@_durationSec"
+                       @oninput="OnSpeed" class="mon-range" />
+                break;
+        }
+        <span class="mon-tip">Arrow keys cycle · Esc to exit</span>
+        <button class="mon-btn mon-exit" @onclick="Exit">✕ Exit</button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MonitorMode Mode { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public EventCallback OnExit { get; set; }
+
+    private ElementReference _el;
+    private DotNetObjectReference<MonitorStage>? _selfRef;
+    private int _colorIndex;
+    private int _gradIndex;
+    private bool _grid = true;
+    private double _durationSec = 2.4;
+    private bool _closing;
+
+    private readonly (string Name, string Css)[] _deadColors =
+    [
+        ("Black", "#000000"), ("White", "#ffffff"), ("Red", "#ff0000"), ("Green", "#00ff00"),
+        ("Blue", "#0000ff"), ("Cyan", "#00ffff"), ("Magenta", "#ff00ff"), ("Yellow", "#ffff00"),
+        ("50% Gray", "#808080"), ("25% Gray", "#404040"), ("75% Gray", "#c0c0c0"),
+    ];
+    private readonly (string Name, string Css)[] _uniformColors =
+    [
+        ("50% Gray", "#808080"), ("White", "#ffffff"), ("75% Gray", "#bfbfbf"), ("25% Gray", "#404040"),
+    ];
+    private readonly (string Name, string Css)[] _gradients =
+    [
+        ("Grayscale", "linear-gradient(90deg,#000,#fff)"),
+        ("Red", "linear-gradient(90deg,#000,#f00)"),
+        ("Green", "linear-gradient(90deg,#000,#0f0)"),
+        ("Blue", "linear-gradient(90deg,#000,#00f)"),
+        ("Hue", "linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)"),
+        ("Vertical gray", "linear-gradient(180deg,#000,#fff)"),
+    ];
+    private readonly string[] _motionRows = ["#000000", "#808080", "#ffffff"];
+    private readonly double[] _gammaValues = [1.8, 2.0, 2.2, 2.4, 2.6];
+
+    private (string Name, string Css)[] ColorSet => Mode == MonitorMode.Uniformity ? _uniformColors : _deadColors;
+    private string CurrentColorName => ColorSet[_colorIndex % ColorSet.Length].Name;
+
+    private string FillStyle => Mode switch
+    {
+        MonitorMode.DeadPixel or MonitorMode.Uniformity => $"background:{ColorSet[_colorIndex % ColorSet.Length].Css}",
+        MonitorMode.Gradient => $"background:{_gradients[_gradIndex].Css}",
+        MonitorMode.Backlight => "background:#000000",
+        MonitorMode.Sharpness or MonitorMode.Contrast or MonitorMode.Gamma => "background:#7f7f7f",
+        MonitorMode.ViewingAngle => "background:#808080",
+        _ => "background:#101418",
+    };
+
+    private static string GammaGray(double gamma)
+    {
+        // The solid level that visually matches a 1px 0/255 dither under this gamma:
+        int v = (int)Math.Round(Math.Pow(0.5, 1.0 / gamma) * 255);
+        return $"rgb({v},{v},{v})";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            try
+            {
+                await Monitor.EnterFullscreenAsync("mon-stage");
+                await Monitor.WatchFullscreenExitAsync(_selfRef, nameof(OnFullscreenExited));
+            }
+            catch { /* fullscreen may be blocked; overlay still covers the viewport */ }
+            try { await _el.FocusAsync(); } catch { }
+        }
+    }
+
+    [JSInvokable]
+    public Task OnFullscreenExited()
+    {
+        if (!_closing) return InvokeAsync(Exit);
+        return Task.CompletedTask;
+    }
+
+    private void Next()
+    {
+        if (Mode == MonitorMode.Gradient) _gradIndex = (_gradIndex + 1) % _gradients.Length;
+        else _colorIndex = (_colorIndex + 1) % ColorSet.Length;
+    }
+    private void Prev()
+    {
+        if (Mode == MonitorMode.Gradient) _gradIndex = (_gradIndex - 1 + _gradients.Length) % _gradients.Length;
+        else _colorIndex = (_colorIndex - 1 + ColorSet.Length) % ColorSet.Length;
+    }
+
+    private void OnSpeed(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var v))
+            _durationSec = Math.Clamp(7 - v, 0.6, 6); // slider right = faster
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "Escape": await Exit(); break;
+            case "ArrowRight" or "ArrowDown": Next(); break;
+            case "ArrowLeft" or "ArrowUp": Prev(); break;
+        }
+    }
+
+    private async Task Exit()
+    {
+        if (_closing) return;
+        _closing = true;
+        try { await Monitor.ExitFullscreenAsync(); } catch { }
+        await OnExit.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _closing = true;
+        _selfRef?.Dispose();
+        try { await Monitor.ExitFullscreenAsync(); } catch { }
+    }
+}

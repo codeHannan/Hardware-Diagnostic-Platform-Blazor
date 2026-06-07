@@ -82,13 +82,28 @@ public sealed class MonitorDiagState : StateContainerBase
 
 public sealed class ComputeDiagState : StateContainerBase
 {
+    public HardwareInfo? Hardware { get; private set; }
     public CpuBenchmarkResult? Cpu { get; private set; }
     public GpuBenchmarkResult? Gpu { get; private set; }
+    public MemoryBenchmarkResult? Memory { get; private set; }
     public double ProgressPercent { get; private set; }
+    public string Phase { get; private set; } = "";
     public bool IsRunning { get; private set; }
+    public string CpuName { get; private set; } = "";
+    public string GpuName { get; private set; } = "";
 
+    public void SetHardware(HardwareInfo h)
+    {
+        Hardware = h;
+        if (string.IsNullOrEmpty(GpuName) && !string.IsNullOrEmpty(h.GpuRenderer)) GpuName = h.GpuRenderer;
+        NotifyStateChanged();
+    }
+    public void SetCpuName(string name) { CpuName = name; NotifyStateChanged(); }
+    public void SetGpuName(string name) { GpuName = name; NotifyStateChanged(); }
     public void SetCpu(CpuBenchmarkResult r) { Cpu = r; NotifyStateChanged(); }
     public void SetGpu(GpuBenchmarkResult r) { Gpu = r; NotifyStateChanged(); }
+    public void SetMemory(MemoryBenchmarkResult r) { Memory = r; NotifyStateChanged(); }
     public void SetProgress(double p) { ProgressPercent = p; NotifyThrottled(); }
+    public void SetPhase(string phase) { Phase = phase; ProgressPercent = 0; NotifyStateChanged(); }
     public void SetRunning(bool running) { IsRunning = running; NotifyStateChanged(); }
 }

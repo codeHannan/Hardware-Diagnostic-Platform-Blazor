@@ -1,46 +1,111 @@
 @page "/forum/{PostId}"
+@using BenchRig.App.Components.Forum
 @inject IJsFirestoreBridge Firestore
 @inject AuthStateContainer Auth
 @inject NavigationManager Nav
 
-<PageTitle>Forum Post - BenchRig</PageTitle>
+<PageTitle>Forum Post | BenchRig</PageTitle>
 
 <a class="btn btn-ghost" href="@AppRoutes.Forum">← Back to forum</a>
 
 @if (_loading)
 {
-    <LoadingSpinner Text="Loading post..." />
+    <LoadingSpinner Text="Loading post…" />
+}
+else if (_error is { } err)
+{
+    <div style="margin-top:1rem"><ConnectionError Message="@err" OnRetry="Load" /></div>
 }
 else if (_post is null)
 {
-    <div class="card"><p class="muted">This post could not be found.</p></div>
+    <div class="card" style="margin-top:1rem"><p class="muted">This post could not be found.</p></div>
 }
 else
 {
     <article class="card fade-in" style="margin-top:1rem">
-        <h1>@_post.Title</h1>
-        <p class="muted">by @_post.AuthorName · @_post.CreatedAt.ToLocalTime().ToString("g")</p>
-        <MarkdownRenderer Content="@_post.Body" />
-        <div class="rating-row">
-            <span class="muted">Rate this:</span>
-            @for (int s = 1; s <= 5; s++)
+        @if (_editing)
+        {
+            <h3 class="fp-edit-title">Edit post</h3>
+            <label>Title</label>
+            <input class="input" @bind="_editTitle" maxlength="@DiagnosticDefaults.MaxPostTitle" />
+            <label class="fp-lbl">Body (markdown)</label>
+            <textarea class="textarea fp-edit-body" @bind="_editBody" maxlength="@DiagnosticDefaults.MaxPostBody"></textarea>
+            <label class="fp-lbl">Tags (comma separated)</label>
+            <input class="input" @bind="_editTags" />
+            @if (_editError is { } ee) { <p class="validation-message">@ee</p> }
+            <div class="stat-row fp-edit-actions">
+                <button class="btn btn-primary" disabled="@_savingEdit" @onclick="SaveEdit">@(_savingEdit ? "Saving…" : "Save changes")</button>
+                <button class="btn btn-ghost" @onclick="CancelEdit">Cancel</button>
+            </div>
+        }
+        else
+        {
+            <div class="post-top">
+                <div>
+                    <h1>@_post.Title</h1>
+                    <p class="muted">by @_post.AuthorName · @TimeAgo.From(_post.CreatedAt)@(IsEdited ? " · edited" : "")</p>
+                </div>
+                @if (CanModify)
+                {
+                    <div class="fp-actions">
+                        <button class="btn btn-ghost btn-sm" @onclick="StartEdit">Edit</button>
+                        @if (_confirmDelete)
+                        {
+                            <span class="fp-confirm">Delete?</span>
+                            <button class="btn btn-sm fp-del" disabled="@_deleting" @onclick="Delete">Yes</button>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => _confirmDelete = false">No</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-ghost btn-sm" @onclick="() => _confirmDelete = true">Delete</button>
+                        }
+                    </div>
+                }
+            </div>
+
+            @if (_post.Tags.Count > 0)
             {
-                var star = s;
-                <button class="star-btn @(_myRating >= star ? "on" : "")"
-                        disabled="@(!Auth.IsLoggedIn)" @onclick="() => Rate(star)">★</button>
+                <div class="chip-list">@foreach (var t in _post.Tags) { <span class="keychip">#@t</span> }</div>
             }
-            <span class="muted">@_post.AvgRating.ToString("0.0") (@_post.RatingCount)</span>
-        </div>
+
+            <MarkdownRenderer Content="@_post.Body" />
+
+            <div class="rating-row">
+                <span class="muted">@(_myRating > 0 ? "Your rating:" : "Rate this:")</span>
+                @for (int s = 1; s <= 5; s++)
+                {
+                    var star = s;
+                    <button class="star-btn @(_myRating >= star ? "on" : "")"
+                            disabled="@(!Auth.IsLoggedIn || _rating)" @onclick="() => Rate(star)">★</button>
+                }
+                <span class="muted">@_avg.ToString("0.0") · @_count rating@(_count == 1 ? "" : "s")</span>
+                @if (_myRating > 0)
+                {
+                    <button class="fp-clear" disabled="@_rating" @onclick="ClearRating">clear</button>
+                }
+            </div>
+            @if (!Auth.IsLoggedIn)
+            {
+                <p class="muted" style="margin-top:.4rem"><a href="@AppRoutes.Login">Sign in</a> to rate.</p>
+            }
+        }
     </article>
 
     <section style="margin-top:1.4rem">
-        <h2 class="section-title">@_comments.Count Comments</h2>
+        <h2 class="section-title">@_comments.Count Comment@(_comments.Count == 1 ? "" : "s")</h2>
 
         @if (Auth.IsLoggedIn)
         {
             <div class="card" style="margin-bottom:1rem">
-                <textarea class="textarea" @bind="_newComment" placeholder="Add a comment..."></textarea>
-                <button class="btn btn-primary" style="margin-top:.7rem" disabled="@_posting" @onclick="AddComment">Comment</button>
+                <textarea class="textarea" @bind="_newComment" @bind:event="oninput"
+                          maxlength="@DiagnosticDefaults.MaxCommentBody" placeholder="Add a comment…"></textarea>
+                <div class="fp-composer-foot">
+                    <span class="fp-count">@_newComment.Length / @DiagnosticDefaults.MaxCommentBody</span>
+                    <button class="btn btn-primary" disabled="@(_posting || string.IsNullOrWhiteSpace(_newComment))" @onclick="AddComment">
+                        @(_posting ? "Posting…" : "Comment")
+                    </button>
+                </div>
+                @if (!string.IsNullOrEmpty(_commentError)) { <p class="validation-message">@_commentError</p> }
             </div>
         }
         else
@@ -48,12 +113,18 @@ else
             <p class="muted"><a href="@AppRoutes.Login">Sign in</a> to join the discussion.</p>
         }
 
-        @foreach (var c in _comments)
+        @if (_comments.Count == 0)
         {
-            <div class="comment">
-                <div class="comment-head"><b>@c.AuthorName</b> <span class="muted">@c.CreatedAt.ToLocalTime().ToString("g")</span></div>
-                <p>@c.Body</p>
-            </div>
+            <p class="muted">No comments yet. Be the first to reply.</p>
+        }
+        else
+        {
+            @foreach (var root in _roots)
+            {
+                <CommentThread Comment="root" Lookup="_lookup"
+                               CurrentUid="@Auth.CurrentUser?.Uid" IsAdmin="Auth.IsAdmin"
+                               OnReply="HandleReply" OnDelete="HandleDeleteComment" />
+            }
         }
     </section>
 }
@@ -61,61 +132,217 @@ else
 @code {
     [Parameter] public string PostId { get; set; } = "";
 
+    private sealed record RatingDto { public string Id { get; init; } = ""; public int Stars { get; init; } }
+
     private ForumPost? _post;
     private List<ForumComment> _comments = new();
+    private List<ForumComment> _roots = new();
+    private Dictionary<string, List<ForumComment>> _lookup = new();
+
     private string _newComment = "";
+    private string? _commentError;
+    private string? _error;
     private int _myRating;
+    private double _avg;
+    private int _count;
     private bool _loading = true;
     private bool _posting;
+    private bool _rating;
+    private bool _deleting;
+    private bool _confirmDelete;
+
+    // edit state
+    private bool _editing;
+    private bool _savingEdit;
+    private string _editTitle = "";
+    private string _editBody = "";
+    private string _editTags = "";
+    private string? _editError;
+
+    private bool CanModify => _post is not null && (Auth.IsAdmin || Auth.CurrentUser?.Uid == _post.AuthorUid);
+    private bool IsEdited => _post is not null && _post.UpdatedAt > _post.CreatedAt.AddMinutes(1);
 
     protected override async Task OnParametersSetAsync() => await Load();
 
     private async Task Load()
     {
-        _loading = true;
+        _loading = true; _error = null; _confirmDelete = false; _editing = false;
         try
         {
             _post = await Firestore.GetDocumentAsync<ForumPost>(FirestoreCollections.ForumPost(PostId));
-            _comments = await Firestore.QueryCollectionAsync<ForumComment>(
-                FirestoreCollections.CommentsOf(PostId),
-                new QueryFilter { OrderByField = "createdAt", OrderDir = "asc" });
+            if (_post is not null)
+            {
+                await ReloadComments();
+                await LoadRatings();
+            }
         }
-        catch { _post = null; }
+        catch (Exception ex) { _error = Friendly(ex.Message); }
         finally { _loading = false; }
+    }
+
+    private async Task ReloadComments()
+    {
+        _comments = await Firestore.QueryCollectionAsync<ForumComment>(
+            FirestoreCollections.CommentsOf(PostId),
+            new QueryFilter { OrderByField = "createdAt", OrderDir = "asc" });
+        BuildTree();
+    }
+
+    // Group comments into a parent→children map; orphans (parent deleted) surface as roots.
+    private void BuildTree()
+    {
+        var ids = _comments.Select(c => c.Id).ToHashSet();
+        _lookup = _comments
+            .Where(c => !string.IsNullOrEmpty(c.ParentCommentId) && ids.Contains(c.ParentCommentId!))
+            .GroupBy(c => c.ParentCommentId!)
+            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.CreatedAt).ToList());
+        _roots = _comments
+            .Where(c => string.IsNullOrEmpty(c.ParentCommentId) || !ids.Contains(c.ParentCommentId!))
+            .OrderBy(c => c.CreatedAt).ToList();
+    }
+
+    // Aggregate ratings client-side from the subcollection (security rules don't let a
+    // non-author update the post's avgRating, so we compute it at read time).
+    private async Task LoadRatings()
+    {
+        try
+        {
+            var ratings = await Firestore.QueryCollectionAsync<RatingDto>(FirestoreCollections.RatingsOf(PostId));
+            _count = ratings.Count;
+            _avg = _count > 0 ? ratings.Average(r => r.Stars) : 0;
+            _myRating = Auth.CurrentUser is null ? 0 : ratings.FirstOrDefault(r => r.Id == Auth.CurrentUser.Uid)?.Stars ?? 0;
+        }
+        catch { _avg = _post?.AvgRating ?? 0; _count = _post?.RatingCount ?? 0; }
     }
 
     private async Task AddComment()
     {
         if (string.IsNullOrWhiteSpace(_newComment) || Auth.CurrentUser is null) return;
-        _posting = true;
+        _posting = true; _commentError = null;
         try
         {
-            var user = Auth.CurrentUser;
-            await Firestore.AddDocumentAsync(FirestoreCollections.CommentsOf(PostId), new
-            {
-                body = _newComment.Trim(),
-                authorUid = user.Uid,
-                authorName = user.DisplayName,
-                parentCommentId = (string?)null,
-                depth = 0,
-            });
+            await PostComment(_newComment.Trim(), parentId: null, depth: 0);
             _newComment = "";
-            await Load();
+            await ReloadComments();
         }
-        catch { /* surfaced by reload */ }
+        catch (Exception ex) { _commentError = Friendly(ex.Message); }
         finally { _posting = false; }
+    }
+
+    private async Task HandleReply(CommentThread.ReplyRequest r)
+    {
+        if (Auth.CurrentUser is null) return;
+        try
+        {
+            await PostComment(r.Body, r.ParentId, r.Depth);
+            await ReloadComments();
+        }
+        catch (Exception ex) { _commentError = Friendly(ex.Message); }
+    }
+
+    private async Task PostComment(string body, string? parentId, int depth)
+    {
+        var user = Auth.CurrentUser!;
+        await Firestore.AddDocumentAsync(FirestoreCollections.CommentsOf(PostId), new
+        {
+            body,
+            authorUid = user.Uid,
+            authorName = user.DisplayName,
+            parentCommentId = parentId,
+            depth,
+        });
+    }
+
+    private async Task HandleDeleteComment(string commentId)
+    {
+        try
+        {
+            await Firestore.DeleteDocumentAsync($"{FirestoreCollections.CommentsOf(PostId)}/{commentId}");
+            await ReloadComments();
+        }
+        catch (Exception ex) { _commentError = Friendly(ex.Message); }
     }
 
     private async Task Rate(int stars)
     {
         if (Auth.CurrentUser is null) return;
-        _myRating = stars;
+        _rating = true;
         try
         {
             await Firestore.SetDocumentAsync(
                 $"{FirestoreCollections.RatingsOf(PostId)}/{Auth.CurrentUser.Uid}",
                 new { stars, createdAt = DateTime.UtcNow.ToString("o") });
+            await LoadRatings();
         }
         catch { /* best effort */ }
+        finally { _rating = false; }
     }
+
+    private async Task ClearRating()
+    {
+        if (Auth.CurrentUser is null || _myRating == 0) return;
+        _rating = true;
+        try
+        {
+            await Firestore.DeleteDocumentAsync($"{FirestoreCollections.RatingsOf(PostId)}/{Auth.CurrentUser.Uid}");
+            await LoadRatings();
+        }
+        catch { /* best effort */ }
+        finally { _rating = false; }
+    }
+
+    private void StartEdit()
+    {
+        if (_post is null) return;
+        _editTitle = _post.Title;
+        _editBody = _post.Body;
+        _editTags = string.Join(", ", _post.Tags);
+        _editError = null;
+        _editing = true;
+        _confirmDelete = false;
+    }
+
+    private void CancelEdit() => _editing = false;
+
+    private async Task SaveEdit()
+    {
+        if (_post is null) return;
+        if (_editTitle.Trim().Length < 5 || _editBody.Trim().Length < 15)
+        {
+            _editError = "Title and body are too short.";
+            return;
+        }
+        _savingEdit = true; _editError = null;
+        try
+        {
+            await Firestore.UpdateDocumentAsync(FirestoreCollections.ForumPost(PostId), new
+            {
+                title = _editTitle.Trim(),
+                body = _editBody.Trim(),
+                tags = _editTags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                .Select(t => t.ToLowerInvariant()).Distinct().Take(8).ToArray(),
+            });
+            _editing = false;
+            await Load();
+        }
+        catch (Exception ex) { _editError = Friendly(ex.Message); }
+        finally { _savingEdit = false; }
+    }
+
+    private async Task Delete()
+    {
+        if (_post is null) return;
+        _deleting = true;
+        try
+        {
+            await Firestore.DeleteDocumentAsync(FirestoreCollections.ForumPost(PostId));
+            Nav.NavigateTo(AppRoutes.Forum);
+        }
+        catch { _deleting = false; _confirmDelete = false; }
+    }
+
+    private static string Friendly(string msg)
+        => msg.Contains("UNREACHABLE", StringComparison.OrdinalIgnoreCase) || msg.Contains("timed out", StringComparison.OrdinalIgnoreCase)
+            ? "The Firestore database didn't respond in time."
+            : "Couldn't reach the database. Please try again.";
 }

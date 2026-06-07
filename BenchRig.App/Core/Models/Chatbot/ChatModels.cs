@@ -1,4 +1,4 @@
-﻿namespace BenchRig.App.Core.Models.Chatbot;
+namespace BenchRig.App.Core.Models.Chatbot;
 
 public record ChatMessage
 {

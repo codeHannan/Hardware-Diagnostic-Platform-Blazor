@@ -1,5 +1,15 @@
 // Firebase app initialization (ES module).
-// Project: diagnostic-platform-blazor
+// ──────────────────────────────────────────────────────────────────────────
+//  REPLACE the firebaseConfig values below with YOUR Firebase project's web config.
+//  The values here are the implementation-plan placeholder and will NOT work
+//  (auth/configuration-not-found + Firestore timeouts) until you point this at
+//  a real project. See FIREBASE_SETUP.md in the repo root for the 5-minute setup
+//  (create project → enable Email/Password auth → create Firestore → deploy rules).
+//  Get your config: Firebase console → Project settings → "Your apps" → Web app.
+//
+//  NOTE: only edit the values inside firebaseConfig. The exports below (app/auth/db)
+//  are required by the rest of the app — don't remove them.
+// ──────────────────────────────────────────────────────────────────────────
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -14,7 +24,6 @@ const firebaseConfig = {
     measurementId: "G-NGN2CF3SJZ"
 };
 
-const app = initializeApp(firebaseConfig);
-
+export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);

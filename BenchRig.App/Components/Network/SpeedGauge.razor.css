@@ -1,23 +1,23 @@
 .speed-gauge { position: relative; width: 100%; max-width: 300px; margin: 0 auto; aspect-ratio: 1; }
 .speed-gauge svg { width: 100%; height: 100%; display: block; }
 
-.sg-track { fill: none; stroke: var(--surface-3); stroke-width: 12; stroke-linecap: round; opacity: .5; }
+.sg-track { fill: none; stroke: rgba(244, 241, 236, 0.06); stroke-width: 12; stroke-linecap: round; }
 .sg-fill {
     fill: none; stroke: url(#sgGrad); stroke-width: 12; stroke-linecap: round;
     transition: stroke-dashoffset .45s cubic-bezier(.22,.61,.36,1);
-    filter: drop-shadow(0 0 8px var(--glow));
+    filter: drop-shadow(0 0 10px var(--glow));
 }
 .sg-tip {
-    fill: var(--cream);
+    fill: #fff3ec;
     transition: cx .45s cubic-bezier(.22,.61,.36,1), cy .45s cubic-bezier(.22,.61,.36,1);
-    filter: drop-shadow(0 0 6px var(--cream));
+    filter: drop-shadow(0 0 8px var(--ember)) drop-shadow(0 0 4px var(--ember-2));
 }
 
 .sg-readout {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; pointer-events: none; gap: .15rem;
 }
-.sg-caption { font-size: .72rem; color: var(--accent-strong); font-weight: 700; text-transform: uppercase; letter-spacing: .14em; }
-.sg-value { font-size: 3rem; font-weight: 750; color: var(--cream); line-height: 1; }
+.sg-caption { font-size: .72rem; color: var(--ember); font-weight: 700; text-transform: uppercase; letter-spacing: .16em; }
+.sg-value { font-family: var(--mono); font-size: 3rem; font-weight: 700; color: var(--cream); line-height: 1; letter-spacing: -.03em; text-shadow: 0 0 22px var(--glow-soft); }
 .sg-unit { font-size: .8rem; color: var(--text-2); text-transform: uppercase; letter-spacing: .1em; }
-.sg-scale { font-size: .68rem; color: var(--text-2); margin-top: .5rem; opacity: .7; }
+.sg-scale { font-size: .68rem; color: var(--text-2); margin-top: .5rem; opacity: .7; font-family: var(--mono); }

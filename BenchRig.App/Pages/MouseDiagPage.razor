@@ -1,15 +1,78 @@
 @page "/mouse"
 @using BenchRig.App.Components.Mouse
 
-<PageTitle>Mouse Diagnostics - BenchRig</PageTitle>
+<PageTitle>Mouse Diagnostics | BenchRig</PageTitle>
 
 <div class="page-intro">
     <h1>Mouse Diagnostics</h1>
-    <p>Test click speed, sensor polling rate, and button registration. Tip: clicking inside a test surface is captured directly by the browser pointer API.</p>
+    <p>A full suite for clicking, scrolling, tracking, and switch-health checks, all captured directly through the browser's pointer APIs.</p>
 </div>
 
-<div class="page-grid">
-    <CpsTestPanel />
-    <PollingRatePanel />
-    <ButtonTestPanel />
+<div class="tabbar">
+    @foreach (var t in _tabs)
+    {
+        <button class="tab @(t.Id == _active ? "on" : "")" @onclick="() => _active = t.Id">
+            <span class="tab-ico">@t.Icon</span> @t.Name
+        </button>
+    }
 </div>
+
+<div class="tab-body">
+    @switch (_active)
+    {
+        case 1:
+            <CpsTestPanel />
+            break;
+        case 2:
+            <KohiClickPanel />
+            break;
+        case 3:
+            <ScrollTestPanel />
+            break;
+        case 4:
+            <JitterClickPanel />
+            break;
+        case 5:
+            <DoubleClickPanel />
+            break;
+        case 6:
+            <ButtonTestPanel />
+            break;
+        case 7:
+            <PollingRatePanel />
+            break;
+        case 8:
+            <DpiCheckPanel />
+            break;
+        case 9:
+            <DeadZonePanel />
+            break;
+        case 10:
+            <AccuracyTestPanel />
+            break;
+        case 11:
+            <DragDropPanel />
+            break;
+    }
+</div>
+
+@code {
+    private int _active = 1;
+
+    private record Tab(int Id, string Name, string Icon);
+
+    private readonly Tab[] _tabs =
+    [
+        new(1, "CPS", "⚡"),
+        new(2, "Kohi", "◉"),
+        new(3, "Scroll Wheel", "↕"),
+        new(4, "Jitter Click", "〜"),
+        new(5, "Double Click", "⧉"),
+        new(6, "Buttons", "▲"),
+        new(7, "Polling Rate", "⟳"),
+        new(8, "DPI", "⊹"),
+        new(9, "Jitter / Dead Zone", "✛"),
+        new(10, "Accuracy", "◎"),
+        new(11, "Drag & Drop", "⠿"),
+    ];
+}

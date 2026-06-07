@@ -1,0 +1,52 @@
+@inject ComputeTestOrchestrator Orch
+@inject ComputeDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Memory Overload &amp; Bandwidth</h3>
+        <div class="test-toolbar">
+            <select class="select" @bind="_presetIndex" disabled="@State.IsRunning">
+                @for (int i = 0; i < ComputePresets.Memory.Length; i++)
+                {
+                    <option value="@i">@ComputePresets.Memory[i].Name</option>
+                }
+            </select>
+            <button class="btn btn-primary" disabled="@State.IsRunning" @onclick="Run">@(State.IsRunning ? "Running…" : "Run")</button>
+        </div>
+    </div>
+    <p class="muted">@Preset.Desc · progressively allocates and touches @Preset.TargetMb MB in 32 MB chunks (released afterward), then measures sequential read/write bandwidth. The tab's JS heap limit caps how far it can go.</p>
+
+    @if (State.IsRunning)
+    {
+        <div class="centered"><ProgressRing Percent="State.ProgressPercent" /></div>
+        <p class="muted" style="text-align:center">@State.Phase</p>
+    }
+    else if (State.Memory is { } m)
+    {
+        <div class="result-grid">
+            <MetricCard Label="Peak allocated" Value="@(m.PeakMb >= 1024 ? (m.PeakMb / 1024).ToString("0.0") + " GB" : m.PeakMb.ToString("0") + " MB")" />
+            <MetricCard Label="Write bandwidth" Value="@m.WriteGBs.ToString("0.0")" Unit="GB/s" />
+            <MetricCard Label="Read bandwidth" Value="@m.ReadGBs.ToString("0.0")" Unit="GB/s" />
+            <MetricCard Label="Heap limit" Value="@(m.HeapLimitMb > 0 ? (m.HeapLimitMb / 1024.0).ToString("0.0") + " GB" : "N/A")" />
+        </div>
+        @if (m.Oom)
+        {
+            <p class="badge badge-warn ttoast">Hit the allocation limit before reaching the target. That is the browser tab's memory ceiling.</p>
+        }
+    }
+    else
+    {
+        <p class="muted">Choose a target size and run. Larger targets stress allocation harder; 4 GB will usually hit the tab's heap ceiling (that's expected).</p>
+    }
+</div>
+
+@code {
+    private int _presetIndex = 1;
+    private MemoryPreset Preset => ComputePresets.Memory[_presetIndex];
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private async Task Run() => await Orch.RunMemoryAsync(Preset.TargetMb);
+}

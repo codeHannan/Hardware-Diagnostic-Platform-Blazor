@@ -1,64 +1,72 @@
-@inject KeyboardTestOrchestrator Orch
-@inject KeyboardDiagState State
-@implements IAsyncDisposable
+@implements IDisposable
 
 <div class="card">
     <div class="panel-head">
         <h3>Key Registration</h3>
-        @if (!_active)
-        {
-            <button class="btn btn-primary" @onclick="Start">Start capture</button>
-        }
-        else
-        {
-            <button class="btn" @onclick="Stop">Stop</button>
-        }
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
     </div>
-    <p class="muted">Every key you press lights up. Stop to analyse chatter &amp; rollover.</p>
 
-    <div class="keyboard">
-        @foreach (var row in _rows)
-        {
-            <div class="krow">
-                @foreach (var key in row)
+    <div class="kbd-focusbar @(_focused ? "active" : "")">
+        <span><span class="kbd-dot"></span> @(_focused ? "Capturing — press any key" : "Click the keyboard below to start capturing")</span>
+        <span class="muted">@_tested.Count / @KeyboardLayout.TotalKeys keys verified</span>
+    </div>
+
+    <div class="kbd-capture" tabindex="0" @ref="_el"
+         @onkeydown="OnDown" @onkeyup="OnUp" @onkeydown:preventDefault="true"
+         @onfocus="() => _focused = true" @onblur="() => _focused = false" @onclick="Focus">
+        <div class="keyboard">
+            @foreach (var row in KeyboardLayout.Rows)
+            {
+                <div class="krow">
+                    @foreach (var k in row)
+                    {
+                        <span class="kcap @Cls(k.Code)" style="flex-grow:@k.Width">@k.Label</span>
+                    }
+                </div>
+            }
+            <div class="kbd-arrows">
+                @foreach (var row in KeyboardLayout.ArrowRows)
                 {
-                    <span class="key @(State.PressedKeys.Contains(key.Code) ? "down" : "")" style="flex:@key.W">@key.Label</span>
+                    <div class="krow" style="justify-content:center">
+                        @foreach (var k in row)
+                        {
+                            <span class="kcap @Cls(k.Code)">@k.Label</span>
+                        }
+                    </div>
                 }
             </div>
-        }
+        </div>
     </div>
-
-    @if (State.Chatter.Count > 0)
-    {
-        <p class="badge badge-bad">Chatter detected on @string.Join(", ", State.Chatter.Select(c => c.Code))</p>
-    }
-    @if (State.Rollover is { } r)
-    {
-        <p class="muted">Max simultaneous keys (NKRO): <b class="mono">@r.MaxSimultaneousKeys</b></p>
-    }
+    <p class="muted" style="margin-top:.8rem">Press every key once — verified keys stay highlighted so you can spot any that never register.</p>
 </div>
 
 @code {
-    private bool _active;
-    private record K(string Code, string Label, double W = 1);
+    private ElementReference _el;
+    private readonly HashSet<string> _down = new();
+    private readonly HashSet<string> _tested = new();
+    private bool _focused;
+    private bool _autofocused;
 
-    private readonly K[][] _rows =
-    [
-        [ new("Escape","Esc"), new("Digit1","1"), new("Digit2","2"), new("Digit3","3"), new("Digit4","4"), new("Digit5","5"), new("Digit6","6"), new("Digit7","7"), new("Digit8","8"), new("Digit9","9"), new("Digit0","0"), new("Backspace","Bksp",2) ],
-        [ new("Tab","Tab",1.5), new("KeyQ","Q"), new("KeyW","W"), new("KeyE","E"), new("KeyR","R"), new("KeyT","T"), new("KeyY","Y"), new("KeyU","U"), new("KeyI","I"), new("KeyO","O"), new("KeyP","P") ],
-        [ new("CapsLock","Caps",1.8), new("KeyA","A"), new("KeyS","S"), new("KeyD","D"), new("KeyF","F"), new("KeyG","G"), new("KeyH","H"), new("KeyJ","J"), new("KeyK","K"), new("KeyL","L"), new("Enter","Enter",2) ],
-        [ new("ShiftLeft","Shift",2.3), new("KeyZ","Z"), new("KeyX","X"), new("KeyC","C"), new("KeyV","V"), new("KeyB","B"), new("KeyN","N"), new("KeyM","M"), new("ShiftRight","Shift",2.3) ],
-        [ new("ControlLeft","Ctrl",1.5), new("AltLeft","Alt",1.3), new("Space","Space",7), new("AltRight","Alt",1.3), new("ControlRight","Ctrl",1.5) ],
-    ];
+    private string Cls(string code)
+        => (_down.Contains(code) ? "down" : "") + (_tested.Contains(code) ? " tested" : "");
 
-    protected override void OnInitialized() => State.OnChange += StateHasChanged;
-
-    private async Task Start() { _active = true; await Orch.StartCaptureAsync(); }
-    private async Task Stop() { _active = false; await Orch.StopCaptureAsync(); }
-
-    public async ValueTask DisposeAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        State.OnChange -= StateHasChanged;
-        if (_active) { try { await Orch.StopCaptureAsync(); } catch { /* circuit gone */ } }
+        if (firstRender && !_autofocused) { _autofocused = true; try { await _el.FocusAsync(); } catch { } }
     }
+
+    private async Task Focus() { try { await _el.FocusAsync(); } catch { } }
+
+    private void OnDown(KeyboardEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.Code)) return;
+        _down.Add(e.Code);
+        _tested.Add(e.Code);
+    }
+
+    private void OnUp(KeyboardEventArgs e) => _down.Remove(e.Code);
+
+    private void Reset() { _down.Clear(); _tested.Clear(); }
+
+    public void Dispose() { }
 }

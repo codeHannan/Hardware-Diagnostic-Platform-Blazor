@@ -1,0 +1,91 @@
+@using BenchRig.App.Core.Models.Forum
+
+<div class="cmt @(Comment.Depth > 0 ? "nested" : "")">
+    <div class="cmt-head">
+        <b class="cmt-author">@Comment.AuthorName</b>
+        <span class="muted cmt-time">@TimeAgo.From(Comment.CreatedAt)</span>
+    </div>
+    <div class="cmt-body"><MarkdownRenderer Content="@Comment.Body" /></div>
+
+    <div class="cmt-actions">
+        @if (CanReply)
+        {
+            <button class="cmt-link" @onclick="ToggleReply">@(_replyOpen ? "Cancel" : "Reply")</button>
+        }
+        @if (CanModify)
+        {
+            @if (_confirmDelete)
+            {
+                <span class="cmt-confirm">Delete?</span>
+                <button class="cmt-link bad" @onclick="ConfirmDelete">Yes</button>
+                <button class="cmt-link" @onclick="() => _confirmDelete = false">No</button>
+            }
+            else
+            {
+                <button class="cmt-link" @onclick="() => _confirmDelete = true">Delete</button>
+            }
+        }
+    </div>
+
+    @if (_replyOpen)
+    {
+        <div class="cmt-reply">
+            <textarea class="textarea" @bind="_reply" maxlength="@DiagnosticDefaults.MaxCommentBody"
+                      placeholder="Write a reply…"></textarea>
+            <div class="cmt-reply-actions">
+                <button class="btn btn-primary btn-xs" disabled="@(_sending || string.IsNullOrWhiteSpace(_reply))" @onclick="SendReply">
+                    @(_sending ? "Replying…" : "Reply")
+                </button>
+            </div>
+        </div>
+    }
+
+    @foreach (var child in ChildrenOf(Comment.Id))
+    {
+        <CommentThread Comment="child" Lookup="Lookup" CurrentUid="CurrentUid" IsAdmin="IsAdmin"
+                       OnReply="OnReply" OnDelete="OnDelete" />
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ForumComment Comment { get; set; } = default!;
+    [Parameter, EditorRequired] public Dictionary<string, List<ForumComment>> Lookup { get; set; } = default!;
+    [Parameter] public string? CurrentUid { get; set; }
+    [Parameter] public bool IsAdmin { get; set; }
+    [Parameter] public EventCallback<ReplyRequest> OnReply { get; set; }
+    [Parameter] public EventCallback<string> OnDelete { get; set; }
+
+    private bool _replyOpen;
+    private bool _sending;
+    private bool _confirmDelete;
+    private string _reply = "";
+
+    // Child depth must stay within the rules limit (depth <= MaxCommentDepth).
+    private bool CanReply => CurrentUid is not null && Comment.Depth < DiagnosticDefaults.MaxCommentDepth;
+    private bool CanModify => CurrentUid is not null && (IsAdmin || CurrentUid == Comment.AuthorUid);
+
+    private IEnumerable<ForumComment> ChildrenOf(string id)
+        => Lookup.TryGetValue(id, out var kids) ? kids : Enumerable.Empty<ForumComment>();
+
+    private void ToggleReply()
+    {
+        _replyOpen = !_replyOpen;
+        if (!_replyOpen) _reply = "";
+    }
+
+    private async Task SendReply()
+    {
+        if (string.IsNullOrWhiteSpace(_reply)) return;
+        _sending = true;
+        await OnReply.InvokeAsync(new ReplyRequest(Comment.Id, Comment.Depth + 1, _reply.Trim()));
+        _reply = ""; _replyOpen = false; _sending = false;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        _confirmDelete = false;
+        await OnDelete.InvokeAsync(Comment.Id);
+    }
+
+    public sealed record ReplyRequest(string ParentId, int Depth, string Body);
+}

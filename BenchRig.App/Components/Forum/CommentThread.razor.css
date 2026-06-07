@@ -1,0 +1,19 @@
+.cmt { padding: .9rem 1.1rem; border-radius: var(--r-sm); background: var(--surface-1); border: 1px solid var(--border); margin-bottom: .7rem; }
+.cmt.nested { margin-left: 1.4rem; background: var(--surface-2); border-left: 2px solid var(--accent); }
+.cmt-head { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .3rem; }
+.cmt-author { font-size: .9rem; }
+.cmt-time { font-size: .76rem; }
+.cmt-body { color: var(--text-0); font-size: .9rem; }
+.cmt-body ::deep p { margin: .2rem 0; }
+.cmt-body ::deep p:first-child { margin-top: 0; }
+
+.cmt-actions { display: flex; align-items: center; gap: .8rem; margin-top: .5rem; }
+.cmt-link { background: none; border: none; color: var(--text-2); font-size: .78rem; font-weight: 600; cursor: pointer; padding: 0; }
+.cmt-link:hover { color: var(--cream); }
+.cmt-link.bad { color: var(--bad); }
+.cmt-confirm { font-size: .78rem; color: var(--bad); font-weight: 600; }
+
+.cmt-reply { margin-top: .6rem; }
+.cmt-reply .textarea { min-height: 70px; font-size: .88rem; }
+.cmt-reply-actions { margin-top: .5rem; }
+.btn-xs { padding: .3rem .7rem; font-size: .78rem; }

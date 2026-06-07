@@ -1,11 +1,35 @@
 @page "/donate"
 @using BenchRig.App.Components.Donations
 
-<PageTitle>Donate - BenchRig</PageTitle>
+<PageTitle>Donate | BenchRig</PageTitle>
 
 <div class="page-intro">
     <h1>Support the project</h1>
-    <p>One-time donations are handled securely by Stripe. No account required.</p>
+    <p>BenchRig is free, open, and runs entirely in your browser. Donations are optional and handled securely by Stripe.</p>
 </div>
 
-<DonateButton />
+<div class="donate-layout">
+    <DonateButton />
+
+    <div class="card donate-info">
+        <h3>Where your support goes</h3>
+        <ul class="donate-list">
+            <li><b>Stay ad-free.</b> No trackers, no sponsored results, ever.</li>
+            <li><b>New diagnostics.</b> More tests across network, peripherals, display, and compute.</li>
+            <li><b>Accuracy.</b> Time spent calibrating benchmarks against real hardware.</li>
+            <li><b>Hosting & upkeep.</b> Keeping the app and knowledge base online for everyone.</li>
+        </ul>
+
+        <h4 class="donate-faq-h">FAQ</h4>
+        <dl class="donate-faq">
+            <dt>Do I need an account?</dt>
+            <dd>No. Donations go through Stripe's secure checkout, so no BenchRig account is required.</dd>
+            <dt>Is my card information safe?</dt>
+            <dd>Yes. Payment details are entered on Stripe and never touch BenchRig.</dd>
+            <dt>Can I give monthly?</dt>
+            <dd>If recurring is enabled, switch the toggle to <b>Monthly</b> before choosing an amount.</dd>
+            <dt>Is it tax-deductible?</dt>
+            <dd>BenchRig is an independent project, so donations are gifts, not tax-deductible contributions.</dd>
+        </dl>
+    </div>
+</div>

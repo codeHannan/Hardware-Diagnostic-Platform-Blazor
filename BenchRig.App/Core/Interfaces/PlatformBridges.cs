@@ -2,6 +2,7 @@
 using BenchRig.App.Core.Models.Auth;
 using BenchRig.App.Core.Models.Network;
 using BenchRig.App.Core.Models.Chatbot;
+using BenchRig.App.Core.Models.Donations;
 
 namespace BenchRig.App.Core.Interfaces;
 
@@ -22,6 +23,8 @@ public interface IJsFirestoreBridge : IAsyncDisposable
     Task DeleteDocumentAsync(string documentPath);
     Task<T?> GetDocumentAsync<T>(string documentPath);
     Task<List<T>> QueryCollectionAsync<T>(string collectionPath, QueryFilter? filter = null);
+    /// <summary>Document count of a (sub)collection — for accurate live counts.</summary>
+    Task<int> CountCollectionAsync(string collectionPath);
 
     Task<string> SubscribeToDocumentAsync<TCallback>(string documentPath, DotNetObjectReference<TCallback> callbackRef, string callbackMethodName) where TCallback : class;
     Task<string> SubscribeToCollectionAsync<TCallback>(string collectionPath, QueryFilter? filter, DotNetObjectReference<TCallback> callbackRef, string callbackMethodName) where TCallback : class;
@@ -37,7 +40,10 @@ public interface IJsGeoLocationBridge : IAsyncDisposable
 
 public interface IJsStripeBridge : IAsyncDisposable
 {
-    Task RedirectToCheckoutAsync(int amountCents);
+    /// <summary>Donation tiers/links read from stripe-interop.js (with placeholder detection).</summary>
+    Task<DonationOptions> GetOptionsAsync();
+    /// <summary>Opens a Stripe Payment Link in a new tab. Returns false if the link is a placeholder/invalid.</summary>
+    Task<bool> OpenAsync(string url);
 }
 
 public interface IJsChatbotBridge : IAsyncDisposable

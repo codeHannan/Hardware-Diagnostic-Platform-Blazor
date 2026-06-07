@@ -26,16 +26,28 @@ public sealed class NetworkJsInterop : ModuleInteropBase, IJsNetworkBridge
             Timezone = Str(r, "timezone"),
             Latitude = Dbl(r, "lat"),
             Longitude = Dbl(r, "lon"),
+            AccuracyKm = (int)Dbl(r, "accuracyKm"),
             Colo = Str(r, "colo"),
             Asn = (long)Dbl(r, "asn"),
+            CountryCode = Str(r, "countryCode"),
+            Continent = Str(r, "continent"),
+            UtcOffset = Str(r, "utcOffset"),
+            LocalTime = Str(r, "localTime"),
             HttpProtocol = Str(r, "httpProtocol"),
             ConnType = Str(r, "connType"),
             Downlink = Dbl(r, "downlink"),
             Rtt = Dbl(r, "rtt"),
+            SaveData = Boolean(r, "saveData"),
             DohCloudflare = Boolean(r, "dohCloudflare"),
             Browser = Str(r, "browser"),
             Os = Str(r, "os"),
             Languages = Str(r, "languages"),
+            Cores = (int)Dbl(r, "cores"),
+            Memory = Dbl(r, "memory"),
+            TouchPoints = (int)Dbl(r, "touchPoints"),
+            Online = Boolean(r, "online"),
+            CookiesEnabled = Boolean(r, "cookiesEnabled"),
+            Screen = Str(r, "screen"),
         };
     }
 
@@ -88,10 +100,11 @@ public sealed class NetworkJsInterop : ModuleInteropBase, IJsNetworkBridge
         return await module.InvokeAsync<double[]>("measureLatency", serverId, count);
     }
 
-    public async Task<double> MeasureDownloadAsync<T>(string serverId, int durationMs, DotNetObjectReference<T> progress, string methodName) where T : class
+    public async Task<(double Mbps, double BufferbloatMs)> MeasureDownloadAsync<T>(string serverId, int durationMs, DotNetObjectReference<T> progress, string methodName) where T : class
     {
         var module = await ModuleAsync();
-        return await module.InvokeAsync<double>("measureDownload", serverId, durationMs, progress, methodName);
+        var r = await module.InvokeAsync<JsonElement>("measureDownload", serverId, durationMs, progress, methodName);
+        return (Dbl(r, "mbps"), Dbl(r, "bloatMs"));
     }
 
     public async Task<double> MeasureUploadAsync<T>(string serverId, int durationMs, DotNetObjectReference<T> progress, string methodName) where T : class

@@ -21,14 +21,16 @@ public sealed class ForumState : StateContainerBase
     public ForumPost? SelectedPost { get; private set; }
     public IReadOnlyList<ForumComment> Comments => _comments.AsReadOnly();
     public bool IsLoading { get; private set; }
+    public string? Error { get; private set; }
 
     private readonly List<ForumPost> _posts = new(64);
     private readonly List<ForumComment> _comments = new(64);
 
-    public void SetPosts(IEnumerable<ForumPost> posts) { _posts.Clear(); _posts.AddRange(posts); NotifyStateChanged(); }
+    public void SetPosts(IEnumerable<ForumPost> posts) { _posts.Clear(); _posts.AddRange(posts); Error = null; IsLoading = false; NotifyStateChanged(); }
     public void SelectPost(ForumPost? post) { SelectedPost = post; NotifyStateChanged(); }
     public void SetComments(IEnumerable<ForumComment> comments) { _comments.Clear(); _comments.AddRange(comments); NotifyStateChanged(); }
-    public void SetLoading(bool loading) { IsLoading = loading; NotifyStateChanged(); }
+    public void SetLoading(bool loading) { IsLoading = loading; if (loading) Error = null; NotifyStateChanged(); }
+    public void SetError(string? error) { Error = error; IsLoading = false; NotifyStateChanged(); }
 }
 
 public sealed class TicketState : StateContainerBase

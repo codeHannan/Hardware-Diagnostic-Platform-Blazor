@@ -1,0 +1,61 @@
+@inject ComputeDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head"><h3>Detected Hardware</h3></div>
+
+    @if (State.Hardware is { } hw)
+    {
+        <dl class="kvs">
+            <dt>GPU</dt><dd>@Dash(hw.GpuRenderer)</dd>
+            @if (!string.IsNullOrWhiteSpace(hw.GpuVendor))
+            {
+                <dt>GPU vendor</dt><dd>@hw.GpuVendor</dd>
+            }
+            <dt>CPU threads</dt><dd>@(hw.Threads > 0 ? hw.Threads.ToString() : "N/A")</dd>
+            <dt>Device memory</dt><dd>@(hw.DeviceMemoryGb > 0 ? hw.DeviceMemoryGb + " GB (approx.)" : "N/A")</dd>
+            <dt>Tab heap limit</dt><dd>@(hw.JsHeapLimitMb > 0 ? (hw.JsHeapLimitMb / 1024.0).ToString("0.0") + " GB" : "N/A")</dd>
+            <dt>WebGL2</dt><dd>@(hw.Webgl2 ? "Supported" : "Not available")</dd>
+            <dt>WebGPU</dt><dd>@(hw.Webgpu ? "Supported" : "Not available")</dd>
+        </dl>
+        <p class="muted hw-note">Browsers don't expose the CPU model (privacy). The GPU is auto-detected when the driver allows it. Set your exact models below so comparisons are labelled correctly.</p>
+    }
+    else
+    {
+        <LoadingSpinner Text="Detecting hardware…" />
+    }
+
+    <div class="grid grid-2" style="margin-top:1rem">
+        <div>
+            <label>Your CPU</label>
+            <input class="input" list="cpu-list" placeholder="e.g. AMD Ryzen 7 7800X3D"
+                   value="@State.CpuName" @onchange="OnCpu" />
+            <datalist id="cpu-list">
+                @foreach (var s in ComputePresets.CpuSuggestions)
+                {
+                    <option value="@s" />
+                }
+            </datalist>
+        </div>
+        <div>
+            <label>Your GPU</label>
+            <input class="input" list="gpu-list" placeholder="e.g. NVIDIA RTX 4070"
+                   value="@State.GpuName" @onchange="OnGpu" />
+            <datalist id="gpu-list">
+                @foreach (var s in ComputePresets.GpuSuggestions)
+                {
+                    <option value="@s" />
+                }
+            </datalist>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private static string Dash(string s) => string.IsNullOrWhiteSpace(s) ? "Hidden by browser" : s;
+    private void OnCpu(ChangeEventArgs e) => State.SetCpuName(e.Value?.ToString() ?? "");
+    private void OnGpu(ChangeEventArgs e) => State.SetGpuName(e.Value?.ToString() ?? "");
+}

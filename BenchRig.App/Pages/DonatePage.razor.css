@@ -1,0 +1,15 @@
+.donate-layout { display: grid; grid-template-columns: 460px 1fr; gap: 1.4rem; align-items: start; }
+
+.donate-info h3 { margin-top: 0; }
+.donate-list { margin: .6rem 0 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .5rem; }
+.donate-list li { color: var(--text-1); font-size: .92rem; line-height: 1.5; }
+.donate-list b { color: var(--text-0); }
+
+.donate-faq-h { margin: 1.4rem 0 .4rem; }
+.donate-faq { margin: 0; }
+.donate-faq dt { font-weight: 600; color: var(--cream); font-size: .9rem; margin-top: .8rem; }
+.donate-faq dd { margin: .2rem 0 0; color: var(--text-1); font-size: .86rem; line-height: 1.5; }
+
+@media (max-width: 900px) {
+    .donate-layout { grid-template-columns: 1fr; }
+}

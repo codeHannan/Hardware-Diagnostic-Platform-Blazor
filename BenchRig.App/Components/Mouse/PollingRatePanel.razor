@@ -7,39 +7,89 @@
         <h3>Polling Rate</h3>
         @if (!_active)
         {
-            <button class="btn btn-primary" @onclick="Start">Start</button>
+            <button class="btn btn-primary" @onclick="Start">Start (5s)</button>
         }
         else
         {
             <button class="btn" @onclick="Stop">Stop</button>
         }
     </div>
+    <p class="muted">Move your mouse continuously and rapidly across the box. We sample raw <code>pointermove</code> events (coalesced) to estimate how often your mouse reports — 125, 500 or 1000 Hz.</p>
 
-    <div id="poll-surface" class="test-surface">
+    <div id="poll-surface" class="test-surface" style="cursor:crosshair">
         @if (_active)
         {
-            <span>Move your mouse rapidly across this area...</span>
+            <div>
+                <div class="pad-big">@(State.Polling?.Hz.ToString("0") ?? "…")</div>
+                <div class="pad-sub">keep moving… @_remaining.ToString("0")s left</div>
+            </div>
         }
-        else if (State.Polling is { } p)
+        else if (State.Polling is { } p && p.SampleCount > 0)
         {
             <div>
-                <div class="mono big">@p.Hz.ToString("F0") <span class="muted" style="font-size:1rem">Hz</span></div>
-                <span class="muted">@p.SampleCount samples · ±@p.DeviationHz.ToString("F0") Hz</span>
+                <div class="pad-big">@p.Hz.ToString("0") <span class="pad-sub" style="display:inline">Hz</span></div>
+                <div class="pad-sub">nearest standard rate: <b>@Nearest(p.Hz) Hz</b></div>
             </div>
         }
         else
         {
-            <span>Press Start, then wiggle your mouse here for a few seconds.</span>
+            <div class="pad-hint">Press Start, then swirl your mouse around this box without stopping.</div>
         }
     </div>
+
+    @if (!_active && State.Polling is { } pr && pr.SampleCount > 0)
+    {
+        <div class="result-grid">
+            <MetricCard Label="Average" Value="@pr.Hz.ToString("0")" Unit="Hz" />
+            <MetricCard Label="Peak" Value="@pr.MaxHz.ToString("0")" Unit="Hz" />
+            <MetricCard Label="Stability" Value="@($"±{pr.DeviationHz:0}")" Unit="Hz" />
+            <MetricCard Label="Samples" Value="@pr.SampleCount.ToString()" />
+        </div>
+    }
 </div>
 
 @code {
     private bool _active;
+    private double _remaining;
+    private System.Threading.Timer? _timer;
+    private DateTime _start;
 
     protected override void OnInitialized() => State.OnChange += StateHasChanged;
-    public void Dispose() => State.OnChange -= StateHasChanged;
 
-    private async Task Start() { _active = true; await Orch.StartPollingTestAsync("poll-surface"); }
-    private async Task Stop() { _active = false; await Orch.StopPollingTestAsync("poll-surface"); }
+    private async Task Start()
+    {
+        _active = true;
+        _remaining = 5;
+        _start = DateTime.UtcNow;
+        await Orch.StartPollingTestAsync("poll-surface");
+        _timer = new System.Threading.Timer(_ => Tick(), null, 200, 200);
+    }
+
+    private void Tick()
+    {
+        _remaining = Math.Max(0, 5 - (DateTime.UtcNow - _start).TotalSeconds);
+        if (_remaining <= 0) InvokeAsync(Stop);
+        else InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Stop()
+    {
+        if (!_active) return;
+        _timer?.Dispose();
+        _timer = null;
+        _active = false;
+        await Orch.StopPollingTestAsync("poll-surface");
+    }
+
+    private static int Nearest(double hz)
+    {
+        int[] standards = [125, 250, 500, 1000];
+        return standards.OrderBy(s => Math.Abs(s - hz)).First();
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+        _timer?.Dispose();
+    }
 }

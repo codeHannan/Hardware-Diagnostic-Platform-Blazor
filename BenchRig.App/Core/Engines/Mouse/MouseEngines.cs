@@ -29,6 +29,12 @@ public sealed class PollingRateAnalyzer
         double avgDelta = deltas.Average();
         double hz = avgDelta <= 0 ? 0 : 1000.0 / avgDelta;
 
+        // Max instantaneous rate from the smallest gap (use a small percentile to
+        // reject single-sample outliers): take the 5th-smallest delta if available.
+        var sortedDeltas = deltas.OrderBy(d => d).ToList();
+        double minDelta = sortedDeltas[Math.Min(sortedDeltas.Count - 1, 2)];
+        double maxHz = minDelta > 0 ? 1000.0 / minDelta : 0;
+
         double meanHz = hz;
         double devSum = deltas.Sum(d =>
         {
@@ -40,6 +46,7 @@ public sealed class PollingRateAnalyzer
         return new PollingRateResult
         {
             Hz = hz,
+            MaxHz = maxHz,
             SampleCount = timeStampsMs.Count,
             DeviationHz = deviation,
         };

@@ -2,9 +2,10 @@
 <div class="speed-gauge">
     <svg viewBox="0 0 240 240" preserveAspectRatio="xMidYMid meet">
         <defs>
-            <linearGradient id="sgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="var(--accent-strong)" />
-                <stop offset="100%" stop-color="var(--cream)" />
+            <linearGradient id="sgGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="var(--ember-deep)" />
+                <stop offset="55%" stop-color="var(--ember)" />
+                <stop offset="100%" stop-color="var(--ember-2)" />
             </linearGradient>
         </defs>
         <path d="@_trackPath" class="sg-track" />
@@ -20,7 +21,7 @@
         <div class="sg-unit">@Unit</div>
         @if (Max > 0)
         {
-            <div class="sg-scale">0 – @Max.ToString("0") @Unit</div>
+            <div class="sg-scale">0 to @Max.ToString("0") @Unit</div>
         }
     </div>
 </div>

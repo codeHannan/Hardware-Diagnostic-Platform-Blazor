@@ -1,28 +1,46 @@
-@inject MouseDiagState State
-@implements IDisposable
-
 <div class="card">
-    <div class="panel-head"><h3>Button Test</h3></div>
-    <p class="muted">Press each mouse button over this panel - it lights up on press.</p>
-    <div class="btn-grid"
-         @onpointerdown="OnDown" @onpointerup="OnUp"
-         @oncontextmenu:preventDefault="true" @oncontextmenu="NoOp">
-        @foreach (var b in _buttons)
+    <div class="panel-head">
+        <h3>Button Registration</h3>
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+    </div>
+    <p class="muted">Press every button (including side buttons and the wheel click) over this panel. Each lights up and counts presses.</p>
+
+    <div class="bt-stage" @onpointerdown="OnDown" @onpointerup="OnUp"
+         @oncontextmenu:preventDefault="true" @oncontextmenu="Noop">
+        <div class="mouse-diagram">
+            <div class="m-btn m-left @Cls(MouseButton.Left)">L<span>@Count(MouseButton.Left)</span></div>
+            <div class="m-btn m-mid @Cls(MouseButton.Middle)"><span>@Count(MouseButton.Middle)</span></div>
+            <div class="m-btn m-right @Cls(MouseButton.Right)">R<span>@Count(MouseButton.Right)</span></div>
+            <div class="m-side m-back @Cls(MouseButton.Back)">Back</div>
+            <div class="m-side m-fwd @Cls(MouseButton.Forward)">Fwd</div>
+        </div>
+        <p class="bt-hint">Click anywhere in this box</p>
+    </div>
+
+    <div class="result-grid">
+        @foreach (var b in _all)
         {
-            <div class="mbtn @(State.ButtonStates.GetValueOrDefault(b) ? "lit" : "")">@b</div>
+            <MetricCard Label="@b.ToString()" Value="@Count(b).ToString()" Sub="@(_pressed.Contains(b) ? "pressed" : null)" />
         }
     </div>
 </div>
 
 @code {
-    private readonly MouseButton[] _buttons = Enum.GetValues<MouseButton>();
+    private readonly MouseButton[] _all = Enum.GetValues<MouseButton>();
+    private readonly Dictionary<MouseButton, int> _counts = new();
+    private readonly HashSet<MouseButton> _pressed = new();
 
-    protected override void OnInitialized() => State.OnChange += StateHasChanged;
-    public void Dispose() => State.OnChange -= StateHasChanged;
+    private int Count(MouseButton b) => _counts.GetValueOrDefault(b);
+    private string Cls(MouseButton b) => _pressed.Contains(b) ? "lit" : "";
 
-    private void OnDown(PointerEventArgs e) => State.SetButton(Map(e.Button), true);
-    private void OnUp(PointerEventArgs e) => State.SetButton(Map(e.Button), false);
-    private void NoOp() { }
+    private void OnDown(PointerEventArgs e)
+    {
+        var b = Map(e.Button);
+        _pressed.Add(b);
+        _counts[b] = _counts.GetValueOrDefault(b) + 1;
+    }
+
+    private void OnUp(PointerEventArgs e) => _pressed.Remove(Map(e.Button));
 
     private static MouseButton Map(long button) => button switch
     {
@@ -33,4 +51,7 @@
         4 => MouseButton.Forward,
         _ => MouseButton.Left,
     };
+
+    private void Reset() { _counts.Clear(); _pressed.Clear(); }
+    private void Noop() { }
 }

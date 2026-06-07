@@ -12,8 +12,8 @@ namespace BenchRig.App.Services.Orchestrators;
 /// </summary>
 public sealed class NetworkTestOrchestrator : IAsyncDisposable
 {
-    private const int LatencySamples = 20;
-    private const int DownloadMs = 10_000;
+    private const int LatencySamples = 30;
+    private const int DownloadMs = 12_000;
     private const int UploadMs = 8_000;
 
     private readonly IJsNetworkBridge _bridge;
@@ -82,14 +82,17 @@ public sealed class NetworkTestOrchestrator : IAsyncDisposable
                     PacketIndex = i,
                 });
 
-            double ping = Median(pings);
+            double min = pings.Count > 0 ? pings.Min() : 0;
+            double avg = pings.Count > 0 ? pings.Average() : 0;
+            double max = pings.Count > 0 ? pings.Max() : 0;
             double jitter = _jitter.CalculateRunning(pings);
-            _state.SetLatency(ping, jitter);
+            _state.SetLatency(min, avg, max, jitter);
 
-            // ── 2. Download ──
+            // ── 2. Download (+ bufferbloat) ──
             _state.SetPhase(SpeedPhase.Download);
-            double down = await _bridge.MeasureDownloadAsync(serverId, DownloadMs, SelfRef, nameof(OnDownloadProgress));
+            var (down, bloatMs) = await _bridge.MeasureDownloadAsync(serverId, DownloadMs, SelfRef, nameof(OnDownloadProgress));
             _state.SetDownload(down);
+            if (bloatMs > 0) _state.SetBufferbloat(bloatMs);
 
             // ── 3. Upload ──
             _state.SetPhase(SpeedPhase.Upload);
@@ -104,7 +107,7 @@ public sealed class NetworkTestOrchestrator : IAsyncDisposable
                 {
                     DownloadMbps = down,
                     UploadMbps = up,
-                    PingMs = ping,
+                    PingMs = min,
                     JitterMs = jitter,
                     ServerLabel = serverLabel,
                     Timestamp = DateTime.UtcNow,
@@ -123,14 +126,6 @@ public sealed class NetworkTestOrchestrator : IAsyncDisposable
 
     [JSInvokable] public void OnDownloadProgress(double mbps) => _state.SetLiveMbps(mbps);
     [JSInvokable] public void OnUploadProgress(double mbps) => _state.SetLiveMbps(mbps);
-
-    private static double Median(List<double> values)
-    {
-        if (values.Count == 0) return 0;
-        var sorted = values.OrderBy(v => v).ToList();
-        int mid = sorted.Count / 2;
-        return sorted.Count % 2 == 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-    }
 
     public async ValueTask DisposeAsync()
     {

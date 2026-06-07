@@ -1,26 +1,133 @@
 @inject AudioTestOrchestrator Orch
 @inject AudioDiagState State
-@implements IDisposable
+@implements IAsyncDisposable
 
 <div class="card">
-    <div class="panel-head"><h3>Playback &amp; Balance</h3></div>
-    <p class="muted">Play a 440 Hz test tone on a specific channel to confirm routing and stereo balance.</p>
-    <div class="stat-row">
-        <button class="btn" @onclick='() => Play("left")'>◄ Left</button>
-        <button class="btn" @onclick='() => Play("center")'>● Center</button>
-        <button class="btn" @onclick='() => Play("right")'>Right ►</button>
-        <button class="btn btn-ghost" @onclick="Stop">Stop</button>
+    <div class="panel-head">
+        <h3>Playback Check</h3>
+        <div class="test-toolbar">
+            <select class="select" @bind="_config" @bind:after="OnConfigChange">
+                <option value="stereo">Stereo (2.0)</option>
+                <option value="surround51">5.1 Surround</option>
+                <option value="surround71">7.1 Surround</option>
+                <option value="immersive">Immersive / Soundbar</option>
+            </select>
+            <button class="btn btn-ghost" @onclick="Stop">Stop</button>
+        </div>
     </div>
-    @if (State.IsPlaying)
+    <p class="muted">
+        Click a speaker to play a test tone on that exact channel and confirm it comes from the right place.
+        Your output device exposes <b>@_maxChannels channels</b>@(_maxChannels < Total ? $" — this layout needs {Total}, so higher channels may be inaudible." : ".")
+    </p>
+
+    @if (_config == "immersive")
     {
-        <p class="badge badge-ok pulse" style="margin-top:1rem">Playing tone</p>
+        <div class="speaker-room">
+            <div class="listener">🙂</div>
+            @if (_spinning) { <div class="orbit"></div> }
+        </div>
+        <div class="test-toolbar" style="justify-content:center">
+            <button class="btn btn-primary" @onclick="PlaySpatial">▶ Play orbiting sweep</button>
+        </div>
+        <p class="muted" style="text-align:center">A tone circles around you (HRTF spatial audio). Best with headphones or a soundbar with virtual surround.</p>
+    }
+    else
+    {
+        <div class="speaker-room">
+            <div class="listener">🙂</div>
+            @foreach (var s in Speakers)
+            {
+                <button class="speaker @(_playing == s.Index ? "on" : "")" style="left:@(s.X)%; top:@(s.Y)%"
+                        @onclick="() => PlayChannel(s.Index)">
+                    <span class="sp-ico">@(s.Label == "LFE" ? "🔈" : "🔊")</span>
+                    <span class="sp-lbl">@s.Label</span>
+                </button>
+            }
+        </div>
+        <div class="test-toolbar" style="justify-content:center">
+            <button class="btn btn-primary" @onclick="PlayAll" disabled="@_sequencing">@(_sequencing ? "Testing…" : "▶ Test all channels")</button>
+        </div>
     }
 </div>
 
 @code {
-    protected override void OnInitialized() => State.OnChange += StateHasChanged;
-    public void Dispose() => State.OnChange -= StateHasChanged;
+    private string _config = "stereo";
+    private int _maxChannels = 2;
+    private int _playing = -1;
+    private bool _sequencing;
+    private bool _spinning;
+    private CancellationTokenSource? _seqCts;
 
-    private async Task Play(string channel) => await Orch.PlayToneAsync("", channel);
-    private async Task Stop() => await Orch.StopAsync();
+    private record Speaker(string Label, int Index, double X, double Y);
+
+    private int Total => _config switch { "surround51" => 6, "surround71" => 8, _ => 2 };
+
+    private Speaker[] Speakers => _config switch
+    {
+        "surround51" =>
+        [
+            new("Front L", 0, 18, 18), new("Front R", 1, 82, 18), new("Center", 2, 50, 10),
+            new("LFE", 3, 50, 82), new("Surround L", 4, 12, 78), new("Surround R", 5, 88, 78),
+        ],
+        "surround71" =>
+        [
+            new("Front L", 0, 18, 14), new("Front R", 1, 82, 14), new("Center", 2, 50, 8), new("LFE", 3, 50, 90),
+            new("Side L", 6, 8, 48), new("Side R", 7, 92, 48), new("Rear L", 4, 22, 86), new("Rear R", 5, 78, 86),
+        ],
+        _ => [ new("Left", 0, 22, 40), new("Right", 1, 78, 40) ],
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _maxChannels = await Orch.GetMaxChannelsAsync(); } catch { _maxChannels = 2; }
+    }
+
+    private async Task OnConfigChange() { await Stop(); }
+
+    private async Task PlayChannel(int index)
+    {
+        _playing = index;
+        _spinning = false;
+        await Orch.PlayChannelAsync(index, Total);
+    }
+
+    private async Task PlaySpatial()
+    {
+        _spinning = true;
+        await Orch.PlaySpatialAsync();
+    }
+
+    private async Task PlayAll()
+    {
+        _seqCts?.Cancel();
+        _seqCts = new CancellationTokenSource();
+        var ct = _seqCts.Token;
+        _sequencing = true;
+        try
+        {
+            foreach (var s in Speakers)
+            {
+                if (ct.IsCancellationRequested) break;
+                _playing = s.Index;
+                StateHasChanged();
+                await Orch.PlayChannelAsync(s.Index, Total);
+                await Task.Delay(950, ct);
+            }
+        }
+        catch (TaskCanceledException) { }
+        finally { _sequencing = false; _playing = -1; await Orch.StopAsync(); }
+    }
+
+    private async Task Stop()
+    {
+        _seqCts?.Cancel();
+        _sequencing = false; _spinning = false; _playing = -1;
+        await Orch.StopAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _seqCts?.Cancel();
+        try { await Orch.StopAsync(); } catch { }
+    }
 }

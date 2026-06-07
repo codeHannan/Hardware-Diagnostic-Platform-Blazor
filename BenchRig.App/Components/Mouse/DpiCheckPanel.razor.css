@@ -1,0 +1,6 @@
+.dpi-stage {
+    border: 1px dashed var(--border); border-radius: var(--r-md);
+    background: repeating-linear-gradient(90deg, var(--bg-0) 0, var(--bg-0) 37px, var(--surface-1) 37px, var(--surface-1) 38px);
+    min-height: 240px; display: grid; place-items: center; user-select: none; cursor: pointer; touch-action: none;
+}
+.dpi-readout { text-align: center; background: rgba(10,10,12,.72); padding: 1.2rem 2rem; border-radius: var(--r-md); pointer-events: none; }

@@ -48,22 +48,36 @@ public record NetworkInfo
     public string Country { get; init; } = "";
     public string Postal { get; init; } = "";
     public string Timezone { get; init; } = "";
+    public string UtcOffset { get; init; } = "";
+    public string LocalTime { get; init; } = "";
     public double Latitude { get; init; }
     public double Longitude { get; init; }
+    public int AccuracyKm { get; init; }
     public string Colo { get; init; } = "";   // Cloudflare edge datacenter code
     public long Asn { get; init; }
+    public string CountryCode { get; init; } = "";
+    public string Continent { get; init; } = "";
 
-    // Extended details
+    // Connection
     public string HttpProtocol { get; init; } = "";
     public string ConnType { get; init; } = "";        // effectiveType: 4g/3g/...
     public double Downlink { get; init; }              // Mbps estimate (NetworkInformation API)
     public double Rtt { get; init; }                   // ms estimate
+    public bool SaveData { get; init; }
     public bool DohCloudflare { get; init; }           // DNS-over-HTTPS reachable
+
+    // Device
     public string Browser { get; init; } = "";
     public string Os { get; init; } = "";
     public string Languages { get; init; } = "";
-    public bool IsPrecise { get; init; }               // location refined via Geolocation API
+    public int Cores { get; init; }
+    public double Memory { get; init; }
+    public int TouchPoints { get; init; }
+    public bool Online { get; init; }
+    public bool CookiesEnabled { get; init; }
+    public string Screen { get; init; } = "";
 
+    public bool IsPrecise { get; init; }               // location refined via Geolocation API
     public bool HasLocation => Latitude != 0 || Longitude != 0;
 }
 

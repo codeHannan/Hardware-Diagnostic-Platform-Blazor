@@ -1,54 +1,41 @@
-// Canvas rendering, requestAnimationFrame timing, fullscreen for monitor tests.
-const ghostLoops = new Map();
+// Fullscreen control + frame-timing measurement for monitor diagnostics.
+// Visual test patterns are rendered in Blazor/CSS; this module only handles
+// the Fullscreen API and requestAnimationFrame timing.
 
 export async function enterFullscreen(elementId) {
     const el = document.getElementById(elementId) || document.documentElement;
-    if (el.requestFullscreen) await el.requestFullscreen();
+    try { if (el.requestFullscreen) await el.requestFullscreen(); } catch { /* user gesture / unsupported */ }
 }
 
 export async function exitFullscreen() {
-    if (document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen();
+    try { if (document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen(); } catch { /* noop */ }
 }
 
-export function measureFrameRate(sampleFrames) {
+// Notifies .NET when the user leaves fullscreen (e.g. presses Esc), so the
+// overlay can close itself in sync.
+export function watchFullscreenExit(dotNetRef, method) {
+    const handler = () => {
+        if (!document.fullscreenElement) {
+            document.removeEventListener("fullscreenchange", handler);
+            try { dotNetRef.invokeMethodAsync(method); } catch { /* circuit gone */ }
+        }
+    };
+    document.addEventListener("fullscreenchange", handler);
+}
+
+// Collects per-frame deltas (ms) for the duration; the caller derives
+// refresh rate, jitter and dropped frames.
+export function measureFrameDeltas(durationMs) {
     return new Promise((resolve) => {
-        let count = 0;
-        let start = 0;
-        const tick = (ts) => {
-            if (start === 0) start = ts;
-            count++;
-            if (count >= sampleFrames) {
-                const elapsed = ts - start;
-                resolve(elapsed > 0 ? (count - 1) * 1000 / elapsed : 0);
-            } else {
-                requestAnimationFrame(tick);
-            }
-        };
+        const deltas = [];
+        let last = 0;
+        const start = performance.now();
+        function tick(ts) {
+            if (last > 0) deltas.push(ts - last);
+            last = ts;
+            if (ts - start < durationMs) requestAnimationFrame(tick);
+            else resolve(deltas);
+        }
         requestAnimationFrame(tick);
     });
-}
-
-export function startGhosting(canvasId, speedPxPerFrame) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    stopGhosting(canvasId);
-    const g = canvas.getContext("2d");
-    let x = 0;
-    let raf = 0;
-    const draw = () => {
-        const w = canvas.width, h = canvas.height;
-        g.fillStyle = "#222831";
-        g.fillRect(0, 0, w, h);
-        g.fillStyle = "#DFD0B8";
-        g.fillRect(x, h / 2 - 30, 60, 60);
-        x = (x + speedPxPerFrame) % (w + 60);
-        raf = requestAnimationFrame(draw);
-    };
-    raf = requestAnimationFrame(draw);
-    ghostLoops.set(canvasId, () => cancelAnimationFrame(raf));
-}
-
-export function stopGhosting(canvasId) {
-    const stop = ghostLoops.get(canvasId);
-    if (stop) { stop(); ghostLoops.delete(canvasId); }
 }
