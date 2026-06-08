@@ -30,12 +30,12 @@
         else
         {
             <div class="page-grid">
-                @foreach (var section in report.Sections)
+                @foreach (var reportSection in report.Sections)
                 {
                     <div class="report-section">
-                        <h3>@section.Title</h3>
+                        <h3>@reportSection.Title</h3>
                         <dl class="kvs">
-                            @foreach (var (k, v) in section.Metrics)
+                            @foreach (var (k, v) in reportSection.Metrics)
                             {
                                 <dt>@k</dt><dd>@v</dd>
                             }
