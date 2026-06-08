@@ -13,6 +13,11 @@ public interface IJsFirebaseAuthBridge : IAsyncDisposable
     Task<UserProfile?> RegisterWithEmailAsync(string email, string password, string displayName);
     Task SignOutAsync();
     Task RegisterAuthStateListenerAsync<T>(DotNetObjectReference<T> callbackRef, string callbackMethodName) where T : class;
+
+    // Account management.
+    Task<UserProfile?> UpdateDisplayNameAsync(string displayName);
+    Task ChangePasswordAsync(string currentPassword, string newPassword);
+    Task DeleteAccountAsync(string? currentPassword);
 }
 
 public interface IJsFirestoreBridge : IAsyncDisposable

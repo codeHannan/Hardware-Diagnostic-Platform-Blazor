@@ -22,6 +22,8 @@
     <button class="btn btn-primary btn-block" disabled="@_busy" @onclick="Register">
         @(_busy ? "Creating..." : "Create account")
     </button>
+    <div class="auth-or"><span>or</span></div>
+    <button class="btn btn-block" disabled="@_busy" @onclick="Google">Continue with Google</button>
 
     <p class="auth-foot">Already registered? <a href="@AppRoutes.Login">Sign in</a></p>
 </div>
@@ -48,6 +50,18 @@
             _error = ex.Message.Contains("email-already", StringComparison.OrdinalIgnoreCase)
                 ? "That email is already registered." : "Registration failed. Please try again.";
         }
+        finally { _busy = false; }
+    }
+
+    private async Task Google()
+    {
+        _error = null; _busy = true;
+        try
+        {
+            await AuthSvc.SignInWithGoogleAsync();
+            Nav.NavigateTo(AppRoutes.Home);
+        }
+        catch { _error = "Google sign-in failed. Please try again."; }
         finally { _busy = false; }
     }
 }

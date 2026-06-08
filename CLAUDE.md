@@ -33,6 +33,32 @@
   (`ember-deep→ember→ember-2`) + glowing ember tip. All verified live; **no console errors**.
 - *Legacy (pre-rework)*: taupe/cream palette (`#222831/#393E46/#948979/#DFD0B8`), Inter font, chaingpt mood.
 
+## Account management + Google auth + topbar polish (current)
+- **Google sign-in finalized**: JS `signInWithGoogle` (popup + `GoogleAuthProvider`) already existed; added
+  the **"Continue with Google" button to the Register page** too (was Login-only) so it's offered on both.
+  `AuthService.SignInWithGoogleAsync` creates the Firestore `users/{uid}` doc on first Google login like
+  email signup. `mapUser` now also returns **`providerId`** (`password` / `google.com` / …) → `UserProfile.
+  ProviderId` + `IsPasswordProvider`. FIREBASE_SETUP.md step 3 updated (enable Google = recommended).
+- **Account settings page** (`/account`, new `Pages/Auth/AccountPage.razor` + scoped css; `AppRoutes.Account`):
+  three cards — (1) **Profile** (avatar + email + provider label; **change display name** → Firebase Auth
+  `updateProfile` + best-effort Firestore `users/{uid}` displayName sync + state update). (2) **Password**
+  (email/password accounts only: current+new+confirm → reauth then `updatePassword`; Google users see a
+  "managed by Google" note). (3) **Danger zone** — **delete account** (reauth: password accounts re-enter
+  password, Google accounts re-auth via popup → `deleteUser`; two-step confirm; clears state + redirects).
+  All sensitive ops re-authenticate in JS (Firebase `requires-recent-login`); errors mapped to friendly
+  copy (wrong-password / too-many-requests / popup-closed).
+  - New JS in `firebase-auth-interop.js`: `updateDisplayName`, `changePassword`, `deleteAccount` (+
+    `reauthenticateWithCredential`/`reauthenticateWithPopup`/`EmailAuthProvider`/`updatePassword`/`deleteUser`
+    imports). Bridge `IJsFirebaseAuthBridge` + `FirebaseAuthJsInterop` + `AuthService` gained matching
+    `UpdateDisplayNameAsync`/`ChangePasswordAsync`/`DeleteAccountAsync`. (Firestore `users` delete stays
+    rules-forbidden, so the orphan doc is left; harmless.)
+- **Topbar UI fix** (user-reported clustered chip + bad seam): the **user chip is now a compact clickable
+  button → `/account`** (avatar + name + small role line "Admin"/"Account" instead of the bulky stacked
+  `badge badge-ok`; hover highlight). The **sidebar `.brand` is now exactly `--topbar-h` (68px) tall** so its
+  bottom divider lines up pixel-perfect with the topbar's bottom border — one continuous hairline across the
+  app (was a ~2px misaligned seam). Verified live: brandBottom=topbarBottom=68; chip/role render; `/account`
+  resolves (signed-out → sign-in prompt); Register shows Google button; **0 warn/0 err, no console errors**.
+
 ## Conventions
 - Namespaces mirror folders under `BenchRig.App.*`.
 - `Core/` has **no** `IJSRuntime`/browser deps. Bridges in `Services/JsInterop` implement `Core/Interfaces`.

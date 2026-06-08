@@ -58,6 +58,32 @@ public sealed class AuthService : IAsyncDisposable
         _state.Clear();
     }
 
+    /// <summary>Updates the user's display name in Firebase Auth + the Firestore profile + state.</summary>
+    public async Task UpdateDisplayNameAsync(string displayName)
+    {
+        displayName = displayName.Trim();
+        var updated = await _auth.UpdateDisplayNameAsync(displayName);
+        if (updated is null) return;
+
+        // Keep the Firestore users/{uid} doc in sync (best-effort).
+        try { await _firestore.UpdateDocumentAsync(FirestoreCollections.User(updated.Uid), new { displayName }); }
+        catch { /* name still updated in Auth + state */ }
+
+        if (_state.CurrentUser is { } current)
+            _state.SetUser(current with { DisplayName = displayName });
+    }
+
+    /// <summary>Changes the password (email/password accounts only; re-auth handled in JS).</summary>
+    public Task ChangePasswordAsync(string currentPassword, string newPassword)
+        => _auth.ChangePasswordAsync(currentPassword, newPassword);
+
+    /// <summary>Permanently deletes the account, then clears local auth state.</summary>
+    public async Task DeleteAccountAsync(string? currentPassword)
+    {
+        await _auth.DeleteAccountAsync(currentPassword);
+        _state.Clear();
+    }
+
     /// <summary>Invoked from JS when Firebase auth state changes.</summary>
     [JSInvokable]
     public async Task OnAuthStateChanged(JsonElement? user)

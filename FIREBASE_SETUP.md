@@ -18,7 +18,8 @@ database"* and *"auth/configuration-not-found"*. Here's the whole setup.
 ## 3. Enable Authentication
 1. Left menu → **Build → Authentication → Get started**.
 2. **Sign-in method** tab → enable **Email/Password**.
-3. (Optional) enable **Google** for the "Continue with Google" button.
+3. (Recommended) enable **Google** — powers the "Continue with Google" button shown on
+   both the Sign in and Register pages.
 4. **Settings → Authorized domains**: `localhost` is already allowed. Add your
    deployed domain when you host it (e.g. `your-app.web.app`).
 

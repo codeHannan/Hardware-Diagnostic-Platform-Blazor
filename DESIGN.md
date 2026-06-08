@@ -1,69 +1,95 @@
 # BenchRig — Software Design Document
 
-**Project:** BenchRig — Hardware & Network Diagnostic Platform
-**Type:** Single-project Blazor WebAssembly (.NET 10), Clean Architecture, Firebase backend
-**Document:** Design specification — requirements (user-story format) + UML/ER/sequence diagrams
+> **Project:** BenchRig | Hardware & Network Diagnostic Platform
+> **Stack:** Blazor WebAssembly (.NET 10) · Clean Architecture · Firebase Backend
 
-> The diagrams are written in **Mermaid**. They render directly on GitHub, in the VS Code "Markdown Preview
-> Mermaid" extension, and at <https://mermaid.live> (where you can also export PNG/SVG/PDF for submission).
+---
+
+## Table of Contents
+
+1. [Introduction](#1-introduction)
+2. [System Architecture](#2-system-architecture)
+3. [Actors](#3-actors)
+4. [Functional Requirements](#4-functional-requirements)
+5. [Non-Functional Requirements](#5-non-functional-requirements)
+6. [UML Use Case Diagram](#6-uml-use-case-diagram)
+7. [UML Domain Model](#7-uml-domain-model)
+8. [UML Class Diagram](#8-uml-class-diagram-design-level)
+9. [Entity-Relationship Diagram](#9-entity-relationship-diagram)
+10. [Sequence Diagrams](#10-sequence-diagrams)
+11. [Requirements Traceability Matrix](#11-requirements-traceability-matrix)
 
 ---
 
 ## 1. Introduction
 
 ### 1.1 Purpose
-BenchRig is a client-side web application that lets anyone benchmark and diagnose every part of their PC —
-network, mouse, keyboard, audio, monitor, and compute (CPU/GPU/memory) — directly in the browser with **no
-installs and no drivers**. Results compile into a shareable report. A community layer (forum, knowledge base,
-support tickets) and an AI assistant help users interpret and resolve issues.
+
+**BenchRig** is a fully client-side web application for benchmarking and diagnosing all major hardware components of a personal computer — including network, mouse, keyboard, audio, monitor, and compute subsystems.
+
+The application runs **directly in the browser** with no installations and no drivers required. Diagnostic results are compiled into a comprehensive, shareable report. A built-in community layer (forum, knowledge base, support tickets) and a conversational **AI assistant** powered by Gemini help users interpret results and troubleshoot hardware issues.
+
+---
 
 ### 1.2 Scope
-- **Diagnostics (client-side):** Network, Mouse (11 tests), Keyboard (8 tests), Audio (4 tests),
-  Monitor (11 tests), Compute (CPU + GPU + Memory).
-- **Workspace:** Diagnostic Report, Community Forum, Knowledge Base, Support, Donations.
-- **Platform:** Authentication (email/password + Google), role-based access (User / Admin), AI chatbot.
-- **Out of scope:** native OS-level sensors (browser cannot read raw hardware), payment processing
-  (delegated to Stripe), and certified/absolute benchmark certification (scores are *approximate indices*).
+
+**In scope:**
+
+- **Diagnostics (client-side):** Network speed & stability, Mouse suite (11 tests), Keyboard suite (8 tests), Audio suite (4 tests), Monitor suite (11 tests), Compute suite (CPU · GPU · Memory benchmarks)
+- **Workspace features:** Diagnostic Report compiler, Community Forum, Knowledge Base, Support Tickets, Donations
+- **Platform:** Secure Authentication (email/password & Google OAuth), role-based access control (User / Admin), conversational AI assistant
+
+**Out of scope:**
+
+- Native OS-level hardware sensors *(browser sandbox limitations)*
+- Absolute or certified benchmark scoring
+- Primary payment processing *(delegated to Stripe)*
+
+---
 
 ### 1.3 Definitions
-| Term | Meaning |
-|---|---|
-| **Diagnostic suite** | A group of related tests for one component (e.g. the Mouse suite). |
-| **Orchestrator** | A service that drives a multi-step diagnostic flow and streams results into state. |
-| **Bridge** | A `Core` interface implemented by a JS-interop class to reach a browser/Web API. |
-| **State container** | An observable in-memory store UI components subscribe to (`OnChange`). |
-| **Report** | A compiled, exportable summary of all diagnostics run in the current session. |
+
+| Term | Definition |
+| :--- | :--- |
+| **Diagnostic suite** | A group of related tests targeting a specific hardware component (e.g., the Mouse suite). |
+| **Orchestrator** | An application service that drives a multi-step diagnostic workflow and streams real-time metrics into state. |
+| **Bridge** | A `Core` abstraction interface implemented by a JS-interop service to communicate with browser APIs. |
+| **State container** | An in-memory, observable store that Blazor UI components subscribe to via `OnChange`. |
+| **Report** | A compiled, downloadable summary of all diagnostics run during the current browser session. |
 
 ---
 
 ## 2. System Architecture
 
-BenchRig follows **Clean Architecture**: the `Core` layer is pure C# (no browser dependencies); browser/Web
-APIs are reached only through `Core` interfaces ("bridges") implemented in the `Services/JsInterop` layer.
+BenchRig is built on **Clean Architecture**. The `Core` layer is pure C# with zero browser dependencies. All browser and Web API access flows exclusively through abstract `Core` interfaces — called **bridges** — which are implemented in the `Services/JsInterop` layer.
 
 ```mermaid
 flowchart TB
-    subgraph UI["Presentation — Pages & Components (Blazor .razor)"]
+    subgraph UI["Presentation: Pages & Components (Blazor .razor)"]
         P[Diagnostic Pages / Workspace Pages / Admin]
         C[Shared & Feature Components]
         CB[Chat Assistant]
     end
+
     subgraph SVC["Services (Application)"]
         ST[State Containers]
         OR[Orchestrators]
         AU[AuthService / AdminGuardService]
         JS[JsInterop Bridge Implementations]
     end
-    subgraph CORE["Core (Domain) — pure C#"]
+
+    subgraph CORE["Core (Domain) — Pure C#"]
         M[Models / Records]
         I[Interfaces / Bridges]
-        E[Engines — score & metric calculators]
+        E[Engines: Score & Metric Calculators]
         K[Constants]
     end
-    subgraph JSW["wwwroot/js — ES modules"]
+
+    subgraph JSW["wwwroot/js — ES Modules"]
         JM[network · mouse · keyboard · audio · monitor · compute · firestore · auth · chatbot · stripe · leaflet]
     end
-    subgraph EXT["External services"]
+
+    subgraph EXT["External Services"]
         FB[(Firebase Auth + Firestore)]
         AI[Firebase AI Logic / Gemini]
         CF[Cloudflare Speed Edge]
@@ -86,170 +112,223 @@ flowchart TB
     JM --> SP
 ```
 
-**Tech stack:** Blazor WASM (.NET 10) · C# · Firebase JS SDK 11.10 (Auth, Firestore, AI) · WebGL2 ·
-Web Audio API · Web Workers · Pointer/Keyboard events · Cloudflare `speed.cloudflare.com` · Leaflet · Stripe
-Payment Links · Mermaid (docs).
+**Tech stack:**
+
+| Layer | Technology |
+| :--- | :--- |
+| Frontend framework | Blazor WASM (.NET 10) · C# |
+| Firebase services | JS SDK 11.10 — Auth, Firestore, AI Logic |
+| Graphics / compute | WebGL2 · Web Workers · Web Audio API |
+| Input capture | Pointer Events API · Keyboard Events API |
+| Network testing | Cloudflare `speed.cloudflare.com` |
+| Mapping | Leaflet.js |
+| Payments | Stripe Payment Links |
 
 ---
 
 ## 3. Actors
 
-| Actor | Description |
-|---|---|
-| **Guest** | Unauthenticated visitor. Can run **all** client-side diagnostics, compile/export reports, browse the forum & knowledge base, chat with the AI assistant, and donate. |
-| **Registered User** | A signed-in account (extends Guest). Can create/edit/delete own forum posts, comment, rate, submit support tickets, and reply to their own tickets. |
-| **Admin** | Extends Registered User. Can moderate any post/comment, respond to and triage any ticket, and author/publish/delete knowledge-base articles. |
-| **Firebase** (secondary) | Authentication + Firestore database. |
-| **Gemini AI** (secondary) | LLM backing the assistant via Firebase AI Logic. |
-| **Cloudflare** (secondary) | CORS-enabled edge endpoints for speed/latency measurement. |
-| **Stripe** (secondary) | Hosted donation checkout via Payment Links. |
+| Actor | Role & Capabilities |
+| :--- | :--- |
+| **Guest** | Unauthenticated visitor. Can run all client-side diagnostics, compile and export reports, browse the forum and knowledge base, chat with the AI assistant, and donate. |
+| **Registered User** | Extends **Guest**. Can create, edit, and delete own forum posts; comment; rate; submit support tickets; and reply to own tickets. |
+| **Admin** | Extends **Registered User**. Can moderate any post or comment, respond to and triage any support ticket, and author, publish, or delete knowledge-base articles. |
+| **Firebase** | Secondary system actor providing Authentication and Firestore database services. |
+| **Gemini AI** | Secondary system actor providing the LLM backing the AI assistant via Firebase AI Logic. |
+| **Cloudflare** | Secondary system actor providing CORS-enabled speed and latency measurement endpoints. |
+| **Stripe** | Secondary system actor providing hosted donation checkout via Payment Links. |
+
+> [!NOTE]
+> Actor inheritance is additive. Every capability of the Guest is available to the Registered User, and every capability of the Registered User is available to the Admin.
 
 ---
 
-## 4. Functional Requirements (User Stories)
+## 4. Functional Requirements
 
-> Format: **As a** ⟨role⟩, **I want** ⟨capability⟩, **so that** ⟨benefit⟩. AC = acceptance criteria.
+> **Format:** `[ID]` (Component) — **Actor** performs *action* to achieve *goal*.
+> `AC` = Acceptance Criteria.
+
+---
 
 ### Epic A — Authentication & Accounts
-- **FR-A1** — As a **Guest**, I want to register with email/password (or Google), so that I can access
-  community features.
-  *AC:* a `users/{uid}` profile is created with `role = "user"`; duplicate/invalid emails are rejected with a
-  friendly message.
-- **FR-A2** — As a **Registered User**, I want to sign in and out, so that my identity is attached to my posts
-  and tickets.
-- **FR-A3** — As a **Registered User**, I want my session to persist across reloads, so that I'm not signed
-  out unexpectedly.
-- **FR-A4** — As an **Admin**, I want elevated access gated by my `role`, so that only I can reach admin tools.
-  *AC:* non-admins visiting `/admin/*` see "Access denied".
 
-### Epic B — Network Diagnostics
-- **FR-B1** — As a **Guest**, I want to measure download, upload, ping, and jitter against Cloudflare's edge,
-  so that I know my real connection speed.
-  *AC:* live speed streams onto a gauge during the test; final values reflect a warm-up-excluded steady state.
-- **FR-B2** — As a **Guest**, I want a clear description of the test server (Cloudflare anycast edge), so that
-  I understand what my result represents.
-- **FR-B3** — As a **Guest**, I want detailed connection info (IP, ISP, ASN, location, device, DoH), so that I
-  can inspect my network environment.
-- **FR-B4** — As a **Guest**, I want idle/loaded latency, jitter, packet loss, and a bufferbloat grade, so
-  that I can judge connection stability.
+**FR-A1** (Auth) — The **Guest** registers with email/password or Google to access community features.
+*AC: A `users/{uid}` profile is created with `role = "user"`. Duplicate or invalid emails are rejected with a clear validation error.*
 
-### Epic C — Peripheral Diagnostics (Mouse · Keyboard · Audio)
-- **FR-C1** — As a **Guest**, I want a mouse suite (CPS, Kohi, jitter/double-click, button registration,
-  polling rate, DPI, jitter/dead-zone, accuracy, drag-and-drop), so that I can verify my mouse hardware.
-  *AC:* DPI uses Pointer Lock for accurate counts; accuracy/drag use stage-relative coordinates; fast-click
-  tests lock out for 2 s after finishing.
-- **FR-C2** — As a **Guest**, I want a keyboard suite (key registration, chatter, key-rate, 60-second typing
-  test with logical random text, NKRO rollover, ghosting, stuck-key, special-key), so that I can verify my
-  keyboard.
-- **FR-C3** — As a **Guest**, I want an audio suite (multi-channel playback, balance, mic loopback, echo &
-  latency), so that I can verify my speakers and microphone.
+**FR-A2** (Auth) — The **Registered User** signs in and out to attach their identity to forum posts, comments, and support tickets.
 
-### Epic D — Display Diagnostics (Monitor)
-- **FR-D1** — As a **Guest**, I want fullscreen monitor test patterns (dead pixel, uniformity, gradients,
-  contrast, sharpness, viewing angles, backlight bleed, ghosting, gamma, response time), so that I can assess
-  panel quality.
-- **FR-D2** — As a **Guest**, I want a live refresh-rate measurement (Hz, range, jitter, dropped frames,
-  compliance), so that I can confirm my monitor runs at its rated rate.
+**FR-A3** (Auth) — The **Registered User's** authentication session persists across page reloads to prevent unexpected sign-outs.
 
-### Epic E — Compute Benchmarks
-- **FR-E1** — As a **Guest**, I want CPU (single + multi-threaded via Web Workers), GPU (Volume-Shader
-  volumetric ray-marcher), and memory benchmarks with selectable presets, so that I can score my hardware.
-- **FR-E2** — As a **Guest**, I want my scores compared against reference GPUs/CPUs, so that I have context.
-  *AC:* GPU FPS is measured with a real GPU sync (`readPixels`); scores are normalized per preset so all modes
-  report the same tier; references mirror UserBenchmark ordering.
-
-### Epic F — Diagnostic Report
-- **FR-F1** — As a **Guest**, I want to compile every diagnostic I ran this session into one report, so that I
-  can review everything together.
-- **FR-F2** — As a **Guest**, I want to export the report as Markdown, so that I can share or archive it.
-
-### Epic G — Community Forum
-- **FR-G1** — As a **Guest**, I want to browse, search, sort, and filter posts by tag, so that I can find
-  relevant discussions.
-- **FR-G2** — As a **Registered User**, I want to create posts (with markdown + tags), so that I can ask
-  questions or share fixes.
-- **FR-G3** — As a **Registered User**, I want to comment with threaded replies (up to depth 3) and rate posts
-  (1–5 stars), so that I can participate.
-- **FR-G4** — As a **Registered User**, I want to edit/delete my own posts and comments, so that I control my
-  content. *AC:* Admins may delete any post/comment (moderation).
-- **FR-G5** — As a **Guest**, I want feed cards to show accurate comment counts and average ratings, so that
-  sorting by "Top rated"/"Most discussed" is meaningful.
-
-### Epic H — Knowledge Base
-- **FR-H1** — As a **Guest**, I want to search/sort/filter published articles by category and tag, with
-  reading time and related articles, so that I can self-serve solutions.
-- **FR-H2** — As a **Guest**, I want shareable article URLs (`/solutions/{id}`), so that I can bookmark/link.
-- **FR-H3** — As an **Admin**, I want to create, edit, tag, categorize (including custom categories), preview,
-  publish/unpublish, and delete articles, so that I can curate the knowledge base.
-
-### Epic I — Support Tickets
-- **FR-I1** — As a **Registered User**, I want to submit a ticket (subject + body), so that I can get help.
-- **FR-I2** — As a **Registered User**, I want to view my tickets with status (Open / In Progress / Resolved),
-  search, filter, and a response count, so that I can track them.
-- **FR-I3** — As a **Registered User**, I want to read staff responses and **reply** to my active
-  (non-resolved) tickets, so that we can hold a two-way conversation.
-- **FR-I4** — As an **Admin**, I want a triage queue (status stats, search) and a detail panel to set status
-  and post responses, so that I can resolve tickets. *AC:* a staff reply moves an Open ticket to In Progress.
-
-### Epic J — Donations
-- **FR-J1** — As a **Guest**, I want to donate via Stripe (one-time or monthly, preset or custom amount), so
-  that I can support the project. *AC:* placeholder/unconfigured links never open a broken tab — a friendly
-  "not set up yet" message with an appreciation note is shown instead.
-
-### Epic K — AI Assistant
-- **FR-K1** — As a **Guest**, I want to chat with a diagnostics assistant (Firebase AI / Gemini), so that I
-  can get help interpreting results. *AC:* the assistant only answers hardware/network topics; replies render
-  as markdown; errors degrade gracefully with no key required in the client.
-
-### Epic L — Administration
-- **FR-L1** — As an **Admin**, I want a console linking the tickets queue and KB editor, so that I have one
-  moderation entry point.
+**FR-A4** (Auth) — The **Admin** obtains elevated access gated by a role field, ensuring only authorized administrators can reach admin tools.
+*AC: Non-admins visiting `/admin/*` are shown an "Access denied" message.*
 
 ---
 
-## 5. Non-Functional Requirements (User Stories)
+### Epic B — Network Diagnostics
 
-### Performance
-- **NFR-P1** — As a **user**, I want the app to remain responsive while a benchmark runs, so that the tab
-  never freezes. *AC:* heavy loops yield to the event loop (~16 ms); no single GPU frame risks a watchdog reset.
-- **NFR-P2** — As a **user**, I want measurements to be accurate, so that results reflect reality. *AC:* speed
-  excludes warm-up; GPU uses a real GPU sync; latency uses steady-state windows.
+**FR-B1** (Network) — The **Guest** measures download speed, upload speed, latency (ping), and jitter against Cloudflare's edge to determine actual connection speed.
+*AC: Live measurements stream onto a visual gauge during the test. Final values reflect a warm-up-excluded steady state.*
 
-### Usability & Responsiveness
-- **NFR-U1** — As a **mobile user**, I want every page to adapt to my screen, so that I can use the app on a
-  phone. *AC:* the sidebar collapses into a slide-in drawer with a backdrop below 980 px.
-- **NFR-U2** — As a **user**, I want clear, professional copy and consistent loading/empty/error states, so
-  that the app feels polished and trustworthy.
+**FR-B2** (Network) — The **Guest** views a clear description of the anycast edge test server to understand the geographic context of results.
 
-### Reliability & Resilience
-- **NFR-R1** — As a **user**, I want the app to fail fast with a clear message when the backend is
-  unreachable, so that it never hangs. *AC:* Firestore ops time out at 12 s and show a retry card.
-- **NFR-R2** — As a **user**, I want diagnostics to work even if the backend is down, so that the core value
-  (local testing) is always available.
+**FR-B3** (Network) — The **Guest** inspects detailed connection properties: IP, ISP, ASN, location, device type, and DNS-over-HTTPS status.
 
-### Security & Privacy
-- **NFR-S1** — As an **Admin**, I want server-side security rules (not just UI checks) to enforce access, so
-  that data is protected. *AC:* Firestore rules enforce owner/admin permissions for every collection.
-- **NFR-S2** — As a **user**, I want my card details handled only by Stripe and the AI to require no client
-  key, so that no secrets live in the browser.
-- **NFR-S3** — As a **user**, I want my location/IP gathered only for the network panel and never persisted,
-  so that my privacy is respected.
+**FR-B4** (Network) — The **Guest** measures idle/loaded latency, jitter, packet loss, and a bufferbloat grade to assess overall connection stability.
 
-### Portability & Maintainability
-- **NFR-M1** — As a **developer**, I want browser APIs isolated behind `Core` interfaces, so that the domain
-  stays testable and the backend is swappable (e.g. Firestore → SQL via repository adapters).
-- **NFR-M2** — As a **developer**, I want the design to cascade from CSS design tokens + global classes, so
-  that re-theming is centralized.
+---
 
-### Accessibility & Compatibility
-- **NFR-A1** — As a **keyboard/screen user**, I want focusable controls, sensible contrast, and Esc-to-exit on
-  fullscreen tests, so that the app is usable for everyone.
-- **NFR-A2** — As a **user**, I want the app to run on any modern evergreen browser with WebGL2/Web Audio, so
-  that I don't need special software.
+### Epic C — Peripheral Diagnostics
+
+**FR-C1** (Peripherals) — The **Guest** runs the mouse suite: CPS, Kohi, double-click/jitter registration, button verification, polling rate, DPI estimation, dead-zone, target accuracy, and drag-and-drop.
+*AC: DPI uses Pointer Lock for precise counts. Accuracy and drag-and-drop use relative canvas coordinates. Clicks lock out for 2 seconds upon completion.*
+
+**FR-C2** (Peripherals) — The **Guest** runs the keyboard suite: key press registration, switch chatter detection, repeat rate, a 60-second typing speed test with randomized text, NKRO rollover, ghosting tests, stuck-key detection, and special key verification.
+
+**FR-C3** (Peripherals) — The **Guest** runs the audio suite: multi-channel playback verification, stereo balance, microphone loopback capture, and echo/latency measurement.
+
+---
+
+### Epic D — Display Diagnostics
+
+**FR-D1** (Display) — The **Guest** runs fullscreen monitor test patterns: dead pixel detection, backlight uniformity, color and grayscale gradients, contrast ratio, pixel sharpness, viewing angles, backlight bleed, screen ghosting, gamma correction, and response time.
+
+**FR-D2** (Display) — The **Guest** monitors live refresh-rate measurements: Hz, frame jitter, dropped frames, and standard compliance.
+
+---
+
+### Epic E — Compute Benchmarks
+
+**FR-E1** (Compute) — The **Guest** runs compute benchmarks: single/multi-threaded CPU passes via Web Workers, GPU volumetric ray-marching via WebGL2, and memory bandwidth allocation.
+
+**FR-E2** (Compute) — The **Guest** compares benchmark scores against standard reference CPUs and GPUs to establish relative performance context.
+*AC: GPU FPS is synchronized using WebGL `readPixels`. Scores normalize across presets. References reflect standard benchmark hierarchies.*
+
+---
+
+### Epic F — Diagnostic Report
+
+**FR-F1** (Report) — The **Guest** compiles all diagnostic session results into a single, unified report summary.
+
+**FR-F2** (Report) — The **Guest** exports the compiled diagnostic report in **Markdown format** for external sharing or archiving.
+
+---
+
+### Epic G — Community Forum
+
+**FR-G1** (Forum) — The **Guest** browses, searches, sorts, and filters forum posts by category and tags.
+
+**FR-G2** (Forum) — The **Registered User** creates discussion posts with Markdown formatting and tags.
+
+**FR-G3** (Forum) — The **Registered User** posts comments with threaded replies (up to depth 3) and rates discussions on a 1–5 star scale.
+
+**FR-G4** (Forum) — The **Registered User** edits or deletes their own posts and comments. The **Admin** retains moderator rights to remove any content.
+
+**FR-G5** (Forum) — The **Guest** views discussion feeds showing comment counts and average ratings, enabling sorting by popularity or quality.
+
+---
+
+### Epic H — Knowledge Base
+
+**FR-H1** (KB) — The **Guest** searches, sorts, and filters published knowledge base articles by category and tags, including reading times and related articles.
+
+**FR-H2** (KB) — The **Guest** accesses KB articles via shareable direct URLs (`/solutions/{id}`).
+
+**FR-H3** (KB) — The **Admin** manages KB articles: creates, edits, tags, categorizes, previews, publishes, and deletes.
+
+---
+
+### Epic I — Support Tickets
+
+**FR-I1** (Support) — The **Registered User** submits support tickets with a subject and body.
+
+**FR-I2** (Support) — The **Registered User** views their submitted tickets filtered by status (Open, In Progress, Resolved) with response counts.
+
+**FR-I3** (Support) — The **Registered User** reads staff replies and responds to active, unresolved tickets.
+
+**FR-I4** (Support) — The **Admin** triages support tickets through a dedicated queue: sets status and publishes responses.
+*AC: A staff response automatically updates ticket status from Open → In Progress.*
+
+---
+
+### Epic J — Donations
+
+**FR-J1** (Donations) — The **Guest** accesses one-time or monthly donation tiers via Stripe.
+*AC: Unconfigured or placeholder links display an explanatory message rather than opening broken browser tabs.*
+
+---
+
+### Epic K — AI Assistant
+
+**FR-K1** (AI) — The **Guest** interacts with a hardware and network diagnostics AI assistant powered by Firebase AI (Gemini).
+*AC: Responses render in Markdown. Errors degrade gracefully. No client-side API keys are exposed in the browser.*
+
+---
+
+### Epic L — Administration
+
+**FR-L1** (Admin) — The **Admin** accesses a unified administration console linking the tickets queue and the knowledge base editor.
+
+---
+
+## 5. Non-Functional Requirements
+
+### 5.1 Performance
+
+**NFR-P1** — The application remains responsive during heavy benchmarks by yielding execution loops to the browser event loop (~16 ms) to prevent tab freezing.
+*AC: No single GPU frame risks a browser watchdog reset.*
+
+**NFR-P2** — Metric calculations exclude warm-up latency and use synchronous WebGL operations to guarantee measurement accuracy.
+*AC: Network measurements exclude initial warm-up windows. GPU uses real `readPixels` sync. Latency uses steady-state averaging.*
+
+---
+
+### 5.2 Usability & Responsiveness
+
+**NFR-U1** — The UI adapts dynamically to all screen sizes, collapsing the sidebar into a slide-in drawer on screens narrower than **980 px**.
+
+**NFR-U2** — Every view presents clear copy, consistent loading spinners, empty-state cues, and informative error messages.
+
+---
+
+### 5.3 Reliability & Resilience
+
+**NFR-R1** — Network operations fail gracefully and display a retry option if Firestore is unreachable for more than **12 seconds**.
+*AC: Firestore operations time out at 12 s and display a visual retry card.*
+
+**NFR-R2** — All client-side diagnostics run locally without any backend connectivity, ensuring utility during offline states.
+
+---
+
+### 5.4 Security & Privacy
+
+**NFR-S1** — Server-side Firestore security rules enforce strict owner/admin access permissions.
+*AC: Rules restrict reads and writes based on UID and Admin role flags.*
+
+**NFR-S2** — All financial payment handling is delegated entirely to Stripe. AI features require no exposed client-side API keys.
+
+**NFR-S3** — IP addresses and location coordinates are processed transiently for diagnostic display only and are **never persisted** server-side.
+
+---
+
+### 5.5 Portability & Maintainability
+
+**NFR-M1** — Browser and Web APIs are isolated behind abstract `Core` interfaces, enabling testability and allowing the backend engine to be swapped with minimal changes.
+
+**NFR-M2** — The design system cascades from centralized CSS custom properties and utility classes, enabling global re-theming from a single source.
+
+---
+
+### 5.6 Accessibility & Compatibility
+
+**NFR-A1** — All interactive components are keyboard-focusable, maintain accessible contrast ratios, and support `Esc` as a keyboard exit on all fullscreen tests.
+
+**NFR-A2** — The application is compatible with all modern evergreen browsers that support WebGL2 and the Web Audio API, with no additional plugins required.
 
 ---
 
 ## 6. UML Use Case Diagram
+
+The diagram below maps each actor to the use cases they may initiate. Dashed arrows denote actor inheritance (`extends`) and external system dependencies (`include`).
 
 ```mermaid
 flowchart LR
@@ -312,7 +391,7 @@ flowchart LR
 
 ## 7. UML Domain Model
 
-Conceptual entities and relationships (attributes only, no behaviour).
+Conceptual entities and their relationships, representing the application's persistent data shape.
 
 ```mermaid
 classDiagram
@@ -389,32 +468,30 @@ classDiagram
     User "1" --> "*" Comment : writes
     User "1" --> "*" SupportTicket : opens
     User "1" --> "*" TicketResponse : posts
+    User "1" --> "*" SolutionArticle : authors
+    User "1" --> "*" ChatMessage : sends
     DiagnosticReport "1" *-- "*" ReportSection : contains
     ForumPost "1" *-- "*" Comment : has
     ForumPost "1" *-- "*" Rating : has
     Comment "0..1" --> "*" Comment : replies-to
     SupportTicket "1" *-- "*" TicketResponse : has
-    User "1" --> "*" SolutionArticle : authors
-    User "1" --> "*" ChatMessage : sends
 ```
 
 ---
 
 ## 8. UML Class Diagram (Design Level)
 
-Representative slice of the Clean-Architecture types (Network suite shown as the exemplar; the same pattern
-repeats for Mouse/Keyboard/Audio/Monitor/Compute).
+A representative slice of the Clean Architecture design, using the Network diagnostic suite as the canonical example. The same pattern repeats for every other diagnostic suite.
 
 ```mermaid
 classDiagram
-    direction LR
-
     class StateContainerBase {
-        <<abstract>>
-        +event OnChange
+        +OnChange()
         #NotifyStateChanged()
         #NotifyThrottled()
     }
+    <<abstract>> StateContainerBase
+
     class NetworkDiagState {
         +SpeedPhase Phase
         +double DownloadMbps
@@ -436,8 +513,8 @@ classDiagram
     class NetworkTestOrchestrator {
         +RunFullTestAsync()
         +LoadNetworkInfoAsync()
-        +OnDownloadProgress(mbps)
-        +OnUploadProgress(mbps)
+        +OnDownloadProgress()
+        +OnUploadProgress()
     }
     class ComputeTestOrchestrator {
         +RunCpuAsync()
@@ -456,37 +533,37 @@ classDiagram
     }
 
     class IJsNetworkBridge {
-        <<interface>>
         +MeasureLatencyAsync()
         +MeasureDownloadAsync()
         +MeasureUploadAsync()
         +GetNetworkInfoAsync()
     }
+    <<interface>> IJsNetworkBridge
+
     class IJsFirestoreBridge {
-        <<interface>>
         +AddDocumentAsync()
         +QueryCollectionAsync()
         +UpdateDocumentAsync()
         +CountCollectionAsync()
     }
+    <<interface>> IJsFirestoreBridge
+
     class IJsComputeBridge {
-        <<interface>>
         +RunGpuBenchmarkAsync()
         +RunCpuBenchmarkAsync()
     }
+    <<interface>> IJsComputeBridge
+
     class ModuleInteropBase {
-        <<abstract>>
         #ModuleAsync()
     }
+    <<abstract>> ModuleInteropBase
+
     class NetworkJsInterop
     class FirestoreJsInterop
-
-    class GpuScoreCalculator {
-        +Score(fps,w,h,steps) double
-    }
+    class GpuScoreCalculator { +Score() }
     class CpuScoreCalculator
     class JitterCalculator
-
     class NetworkDiagPage
     class SpeedTestPanel
     class ForumPage
@@ -507,7 +584,6 @@ classDiagram
     ComputeTestOrchestrator --> GpuScoreCalculator
     ComputeTestOrchestrator --> CpuScoreCalculator
     AuthService --> AuthStateContainer
-
     NetworkDiagPage --> NetworkTestOrchestrator
     SpeedTestPanel --> NetworkDiagState
     ForumPage --> IJsFirestoreBridge
@@ -516,10 +592,9 @@ classDiagram
 
 ---
 
-## 9. Entity-Relationship Diagram (Firestore data model)
+## 9. Entity-Relationship Diagram
 
-Firestore is a document store; collections/subcollections are modeled here as entities. `PK` = document id,
-`FK` = reference field. Subcollections are owned (identifying) relationships.
+Firestore is a document store. Collections and subcollections are modeled here as entities. `PK` = document ID, `FK` = reference field.
 
 ```mermaid
 erDiagram
@@ -535,7 +610,7 @@ erDiagram
         string uid PK
         string email
         string displayName
-        string role "user | admin"
+        string role
         datetime createdAt
     }
     FORUM_POSTS {
@@ -583,7 +658,7 @@ erDiagram
         string authorName
         string subject
         string body
-        string status "open | in_progress | resolved"
+        string status
         datetime createdAt
         datetime updatedAt
     }
@@ -613,159 +688,194 @@ erDiagram
 
 ## 10. Sequence Diagrams
 
+Each diagram traces the full message flow for a key user interaction, from the UI through orchestrators, bridges, JS interop, and external services.
+
+---
+
 ### 10.1 Run Network Speed Test
+
+**Actors:** User, SpeedTestPanel, NetworkTestOrchestrator, NetworkDiagState, IJsNetworkBridge, `network-interop.js`, Cloudflare Edge
+
 ```mermaid
 sequenceDiagram
-    actor U as User
+    participant U as User
     participant Panel as SpeedTestPanel
     participant Orch as NetworkTestOrchestrator
     participant State as NetworkDiagState
-    participant Bridge as IJsNetworkBridge / NetworkJsInterop
+    participant Bridge as IJsNetworkBridge
     participant JS as network-interop.js
     participant CF as Cloudflare Edge
 
     U->>Panel: Click GO
     Panel->>Orch: RunFullTestAsync()
     Orch->>State: BeginTest()
-    Orch->>Bridge: MeasureLatencyAsync(30)
+    Orch->>Bridge: MeasureLatencyAsync()
     Bridge->>JS: measureLatency()
     JS->>CF: ping requests
     CF-->>JS: RTTs
     JS-->>Orch: latency samples
-    Orch->>State: SetLatency(min,avg,max,jitter)
-    Orch->>Bridge: MeasureDownloadAsync(12s, callback)
+    Orch->>State: SetLatency()
+    Orch->>Bridge: MeasureDownloadAsync()
     Bridge->>JS: measureDownload()
     loop every 100 ms
         JS->>CF: stream chunks (6 parallel)
-        JS-->>Orch: OnDownloadProgress(mbps)
+        JS-->>Orch: OnDownloadProgress()
         Orch->>State: SetLiveMbps()
-        State-->>Panel: OnChange (gauge updates)
+        State-->>Panel: OnChange
     end
-    JS-->>Orch: {mbps, bloatMs}
+    JS-->>Orch: final result
     Orch->>State: SetDownload()
-    Orch->>Bridge: MeasureUploadAsync(8s, callback)
-    Bridge->>JS: measureUpload() (XHR/fetch + sync)
+    Orch->>Bridge: MeasureUploadAsync()
+    Bridge->>JS: measureUpload()
     JS-->>Orch: upload mbps
-    Orch->>State: CompleteTest(result, stability)
-    State-->>Panel: OnChange (final result shown)
+    Orch->>State: CompleteTest()
+    State-->>Panel: OnChange
 ```
+
+---
 
 ### 10.2 Run GPU Benchmark (Volume Shader)
+
+**Actors:** User, GpuBenchPanel, ComputeTestOrchestrator, ComputeDiagState, IJsComputeBridge, `compute-interop.js`, WebGL2 GPU, GpuScoreCalculator
+
 ```mermaid
 sequenceDiagram
-    actor U as User
+    participant U as User
     participant Panel as GpuBenchPanel
     participant Orch as ComputeTestOrchestrator
-    participant Calc as GpuScoreCalculator
     participant State as ComputeDiagState
+    participant Bridge as IJsComputeBridge
     participant JS as compute-interop.js
     participant GPU as WebGL2 GPU
+    participant Calc as GpuScoreCalculator
 
     U->>Panel: Select preset, click Run
-    Panel->>Orch: RunGpuAsync(canvas,w,h,steps,ms)
+    Panel->>Orch: RunGpuAsync()
     Orch->>State: BeginRun()
-    Orch->>JS: runGpuBenchmark(...)
-    loop until duration (yield each ~16ms)
+    Orch->>Bridge: RunGpuBenchmarkAsync()
+    Bridge->>JS: runGpuBenchmark()
+    loop until duration elapses
         JS->>GPU: drawArrays (volumetric ray-march)
-        JS->>GPU: readPixels(1x1) forces real GPU sync
-        GPU-->>JS: pixel (frame complete)
-        JS-->>Orch: OnProgress(%)
+        JS->>GPU: readPixels(1x1) — forces GPU sync
+        GPU-->>JS: pixel value
+        JS->>Orch: OnProgress() via JSInvokable
         Orch->>State: SetProgress()
-        State-->>Panel: OnChange (ring updates)
+        State-->>Panel: OnChange
     end
-    JS-->>Orch: {avgFps, frames}
-    Orch->>Calc: Score(avgFps,w,h,steps)
+    JS-->>Orch: GpuBenchmarkResult
+    Orch->>Calc: Score()
     Calc-->>Orch: normalized score
-    Orch->>State: CompleteGpu(result)
-    State-->>Panel: OnChange (score + reference bars)
+    Orch->>State: CompleteGpu()
+    State-->>Panel: OnChange
 ```
 
+---
+
 ### 10.3 Post a Threaded Forum Reply
+
+**Actors:** Registered User, ForumPostPage, CommentThread, IJsFirestoreBridge, `firestore-interop.js`, Firestore
+
 ```mermaid
 sequenceDiagram
-    actor U as Registered User
+    participant U as Registered User
     participant Page as ForumPostPage
     participant Thread as CommentThread
     participant FS as IJsFirestoreBridge
     participant JS as firestore-interop.js
     participant DB as Firestore
 
-    U->>Thread: Click "Reply", type, submit
+    U->>Thread: Click Reply, type body, submit
     Thread->>Page: OnReply(parentId, depth, body)
-    Page->>FS: AddDocumentAsync(comments, {body, authorUid, parentCommentId, depth})
+    Page->>FS: AddDocumentAsync(CommentsOf(postId), data)
     FS->>JS: addDocument()
-    JS->>DB: create comment (rules: depth<=3, author==uid)
-    DB-->>JS: ok / denied
+    JS->>DB: create comment (rules: depth <= 3, author == uid)
+    DB-->>JS: docId
     JS-->>Page: result
-    Page->>FS: QueryCollectionAsync(comments, orderBy createdAt)
+    Page->>FS: QueryCollectionAsync(CommentsOf(postId))
     FS->>JS: queryCollection()
     JS->>DB: read comments
-    DB-->>JS: comments
+    DB-->>JS: comment list
     JS-->>Page: comments
-    Page->>Page: BuildTree() (parent→children, orphans→roots)
+    Page->>Page: BuildTree()
     Page-->>U: re-render nested thread
 ```
 
-### 10.4 Support Ticket Lifecycle (User ⇄ Admin)
+---
+
+### 10.4 Support Ticket Lifecycle (User ↔ Admin)
+
+**Actors:** User, Admin, SupportPage, TicketDetail, AdminTicketsPage, IJsFirestoreBridge, `firestore-interop.js`, Firestore
+
 ```mermaid
 sequenceDiagram
-    actor U as User
-    actor A as Admin
+    participant U as User
+    participant A as Admin
     participant SP as SupportPage
     participant TD as TicketDetail
-    participant AP as AdminTicketsPage
     participant FS as IJsFirestoreBridge
+    participant JS as firestore-interop.js
     participant DB as Firestore
 
     U->>SP: Submit ticket (subject, body)
-    SP->>FS: AddDocumentAsync(support_tickets, status="open")
-    FS->>DB: create ticket
-    A->>AP: Open ticket in queue
-    A->>TD: Post staff reply
-    TD->>FS: AddDocumentAsync(responses, isStaff=true)
-    FS->>DB: create response
-    TD->>FS: UpdateDocumentAsync(ticket, status="in_progress")
-    FS->>DB: update status
-    U->>SP: Open ticket, read staff reply
-    U->>TD: Post reply (active ticket)
-    TD->>FS: AddDocumentAsync(responses, isStaff=false)
-    FS->>DB: create response (rules: owner allowed)
-    A->>TD: Set status = "resolved"
-    TD->>FS: UpdateDocumentAsync(ticket, status="resolved")
-    FS->>DB: update status
+    SP->>FS: AddDocumentAsync(support_tickets, data)
+    FS->>JS: addDocument()
+    JS->>DB: create ticket (status = open)
+    A->>TD: Open ticket, post staff reply
+    TD->>FS: AddDocumentAsync(ResponsesOf(ticketId), data)
+    FS->>JS: addDocument()
+    JS->>DB: create response
+    TD->>FS: UpdateDocumentAsync(ticket, status = in_progress)
+    FS->>JS: updateDocument()
+    JS->>DB: update status field
+    U->>TD: Read staff reply, post reply
+    TD->>FS: AddDocumentAsync(ResponsesOf(ticketId), data)
+    JS->>DB: create user response
+    A->>TD: Set status = resolved
+    TD->>FS: UpdateDocumentAsync(ticket, status = resolved)
+    JS->>DB: update status field
 ```
 
+---
+
 ### 10.5 AI Assistant Message
+
+**Actors:** User, ChatWindow, ChatbotState, IJsChatbotBridge, `chatbot-interop.js`, Firebase AI (Gemini)
+
 ```mermaid
 sequenceDiagram
-    actor U as User
+    participant U as User
     participant CW as ChatWindow
     participant State as ChatbotState
     participant Bridge as IJsChatbotBridge
     participant JS as chatbot-interop.js
-    participant AI as Firebase AI (Gemini)
+    participant AI as Firebase AI
 
     U->>CW: Type message, Send
-    CW->>State: AddUserMessage(text)
-    CW->>Bridge: SendMessageAsync(text, history)
-    Bridge->>JS: sendChatMessage(text, history)
-    JS->>AI: startChat(history).sendMessage(text)
+    CW->>State: AddUserMessage()
+    CW->>Bridge: SendMessageAsync()
+    Bridge->>JS: sendChatMessage()
+    JS->>AI: startChat(history).sendMessage()
     alt success
         AI-->>JS: response text
         JS-->>CW: reply
-        CW->>State: AddAssistantMessage(reply)
+        CW->>State: AddAssistantMessage()
     else error / not enabled
         AI-->>JS: error
         JS-->>CW: throw
-        CW->>State: SetError("Couldn't reach the assistant…")
+        CW->>State: SetError()
     end
-    State-->>CW: OnChange (render markdown reply)
+    State-->>CW: OnChange
 ```
 
+---
+
 ### 10.6 Register / Login
+
+**Actors:** Guest, Login/Register Panel, AuthService, IJsFirebaseAuthBridge, `auth.js`, Firebase Auth, Firestore, AuthStateContainer
+
 ```mermaid
 sequenceDiagram
-    actor G as Guest
+    participant G as Guest
     participant Panel as Login/Register Panel
     participant Svc as AuthService
     participant Bridge as IJsFirebaseAuthBridge
@@ -775,35 +885,391 @@ sequenceDiagram
     participant State as AuthStateContainer
 
     G->>Panel: Enter credentials, submit
-    Panel->>Svc: RegisterWithEmailAsync() / SignInWithEmailAsync()
-    Svc->>Bridge: register/signIn
+    Panel->>Svc: RegisterWithEmailAsync() or SignInWithEmailAsync()
+    Svc->>Bridge: register / signIn
     Bridge->>JS: createUser / signIn
     JS->>FB: auth request
-    FB-->>JS: credential / error
+    FB-->>JS: credential or error
     opt new account
-        JS->>DB: create users/{uid} {role:"user"}
+        JS->>DB: create users/{uid} with role = "user"
     end
     JS-->>Svc: UserProfile
     Svc->>State: set CurrentUser, IsInitialized
-    State-->>Panel: OnChange (redirect home, UI reflects login)
+    State-->>Panel: OnChange
 ```
 
 ---
 
-## 11. Traceability (requirements → diagrams)
+### 10.7 Run Mouse Diagnostics
 
-| Requirement | Use Case | Sequence | Data |
-|---|---|---|---|
-| FR-A* | UC9 | §10.6 | USERS |
-| FR-B* | UC1 | §10.1 | — (transient) |
-| FR-C/D/E* | UC2/UC3/UC4 | §10.2 | — / DIAGNOSTIC_REPORTS |
-| FR-F* | UC5 | §10.2 | DIAGNOSTIC_REPORTS |
-| FR-G* | UC6/UC10/UC14 | §10.3 | FORUM_POSTS, COMMENTS, RATINGS |
-| FR-H* | UC6/UC13 | — | SOLUTION_ARTICLES |
-| FR-I* | UC11/UC12 | §10.4 | SUPPORT_TICKETS, RESPONSES |
-| FR-J* | UC8 | — | — (Stripe) |
-| FR-K* | UC7 | §10.5 | — (ephemeral) |
+**Actors:** User, MouseDiagPage, MouseTestOrchestrator, MouseDiagState, IJsMouseBridge, `mouse-interop.js`, Browser Pointer APIs
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Page as MouseDiagPage
+    participant Orch as MouseTestOrchestrator
+    participant State as MouseDiagState
+    participant Bridge as IJsMouseBridge
+    participant JS as mouse-interop.js
+    participant Browser as Browser Pointer APIs
+
+    U->>Page: Click Start CPS Test
+    Page->>Orch: StartCpsTestAsync()
+    Orch->>State: SetRunning(true)
+    Orch->>Bridge: StartPointerCaptureAsync()
+    Bridge->>JS: startPointerCapture()
+    JS->>Browser: addEventListener(pointerdown)
+    loop On each pointer click
+        Browser->>JS: pointerdown
+        JS->>Orch: OnPointerEvent() via JSInvokable
+        Orch->>State: SetLiveCps()
+        State-->>Page: OnChange
+    end
+    U->>Page: Click Stop Test
+    Page->>Orch: StopCpsTestAsync()
+    Orch->>Bridge: StopPointerCaptureAsync()
+    Bridge->>JS: stopPointerCapture()
+    JS->>Browser: removeEventListener()
+    Orch->>State: SetClick()
+    Orch->>State: SetRunning(false)
+    State-->>Page: OnChange
+```
 
 ---
 
-*End of design document.*
+### 10.8 Run Keyboard Diagnostics
+
+**Actors:** User, KeyboardDiagPage, KeyboardTestOrchestrator, KeyboardDiagState, IJsKeyboardBridge, `keyboard-interop.js`, Browser Keyboard APIs
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Page as KeyboardDiagPage
+    participant Orch as KeyboardTestOrchestrator
+    participant State as KeyboardDiagState
+    participant Bridge as IJsKeyboardBridge
+    participant JS as keyboard-interop.js
+    participant Browser as Browser Keyboard APIs
+
+    U->>Page: Click Start Keyboard Test
+    Page->>Orch: StartCaptureAsync()
+    Orch->>State: ClearKeys()
+    Orch->>State: SetRunning(true)
+    Orch->>Bridge: StartKeyCaptureAsync()
+    Bridge->>JS: startKeyCapture()
+    JS->>Browser: addEventListener(keydown / keyup)
+    loop On each key event
+        Browser->>JS: keydown / keyup
+        JS->>Orch: OnKeyEvent() via JSInvokable
+        alt IsDown
+            Orch->>State: KeyDown(code)
+        else IsUp
+            Orch->>State: KeyUp(code)
+        end
+        State-->>Page: OnChange
+    end
+    U->>Page: Click Stop Test
+    Page->>Orch: StopCaptureAsync()
+    Orch->>Bridge: StopKeyCaptureAsync()
+    Bridge->>JS: stopKeyCapture()
+    JS->>Browser: removeEventListener()
+    Orch->>State: SetChatter()
+    Orch->>State: SetRollover()
+    Orch->>State: SetRunning(false)
+    State-->>Page: OnChange
+```
+
+---
+
+### 10.9 Run Audio Diagnostics
+
+**Actors:** User, AudioDiagPage, AudioTestOrchestrator, AudioDiagState, IJsAudioBridge, `audio-interop.js`, Web Audio API
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Page as AudioDiagPage
+    participant Orch as AudioTestOrchestrator
+    participant State as AudioDiagState
+    participant Bridge as IJsAudioBridge
+    participant JS as audio-interop.js
+    participant Browser as Web Audio API
+
+    Page->>Orch: GetMaxChannelsAsync()
+    Orch->>Bridge: GetMaxChannelsAsync()
+    Bridge->>JS: getMaxChannels()
+    JS-->>Page: max channels
+    U->>Page: Click Test Channel
+    Page->>Orch: PlayChannelAsync()
+    Orch->>State: SetPlaying(true)
+    Orch->>Bridge: PlayChannelToneAsync()
+    Bridge->>JS: playChannelTone()
+    JS->>Browser: route oscillator to channel
+    U->>Page: Click Start Mic Loopback
+    Page->>Orch: StartMicAsync()
+    Orch->>Bridge: StartMicCaptureAsync()
+    Bridge->>JS: startMicCapture()
+    JS->>Browser: getUserMedia(audio: true)
+    Browser-->>JS: stream granted
+    Orch->>State: SetMicState(IsCapturing = true)
+    Page->>Orch: StartLoopbackAsync()
+    Bridge->>JS: startLoopback()
+    JS->>Browser: connect mic stream to destination
+    loop every sample interval
+        Page->>Orch: SampleMicLevelAsync()
+        Bridge->>JS: getMicLevelDb()
+        JS-->>Orch: dB level
+        Orch->>State: SetMicLevel()
+        State-->>Page: OnChange
+    end
+    U->>Page: Click Measure Echo Latency
+    Page->>Orch: MeasureEchoAsync()
+    Bridge->>JS: measureEchoLatency()
+    JS->>Browser: play chirp & record input
+    Browser-->>JS: audio data
+    JS->>JS: cross-correlation time analysis
+    JS-->>Orch: roundtrip latency (ms)
+    Orch->>State: SetEcho()
+    State-->>Page: OnChange
+```
+
+---
+
+### 10.10 Run Monitor Diagnostics
+
+**Actors:** User, MonitorDiagPage, MonitorTestOrchestrator, MonitorDiagState, IJsMonitorBridge, `monitor-interop.js`, requestAnimationFrame
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Page as MonitorDiagPage
+    participant Orch as MonitorTestOrchestrator
+    participant State as MonitorDiagState
+    participant Bridge as IJsMonitorBridge
+    participant JS as monitor-interop.js
+    participant Browser as requestAnimationFrame
+
+    U->>Page: Click Measure Refresh Rate
+    Page->>Orch: MeasureRefreshAsync()
+    Orch->>Bridge: MeasureFrameDeltasAsync()
+    Bridge->>JS: measureFrameDeltas()
+    JS->>Browser: register rAF loop
+    loop for duration (3 000 ms)
+        Browser->>JS: frame callback
+        JS->>JS: delta = perf.now() - lastTime
+    end
+    JS-->>Orch: double[] frameDeltas
+    Orch->>Orch: calculate Hz, jitter, dropped frames
+    Orch->>State: SetRefreshRate()
+    State-->>Page: OnChange
+    U->>Page: Select test pattern (e.g. Dead Pixel)
+    Page->>Orch: EnterFullscreenAsync()
+    Orch->>Bridge: EnterFullscreenAsync()
+    Bridge->>JS: enterFullscreen()
+    JS->>Browser: requestFullscreen()
+    Browser-->>JS: fullscreen entered
+    Orch->>State: SetFullscreen(true)
+    State-->>Page: OnChange
+```
+
+---
+
+### 10.11 Run CPU & Memory Benchmarks
+
+**Actors:** User, ComputeBenchPage, ComputeTestOrchestrator, ComputeDiagState, IJsComputeBridge, `compute-interop.js`, Web Workers
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Page as ComputeBenchPage
+    participant Orch as ComputeTestOrchestrator
+    participant State as ComputeDiagState
+    participant Bridge as IJsComputeBridge
+    participant JS as compute-interop.js
+    participant Workers as Web Workers
+
+    U->>Page: Click Run CPU Benchmark
+    Page->>Orch: RunCpuAsync()
+    Orch->>State: SetRunning(true)
+    Orch->>State: SetPhase(single-core / multi-core)
+    Orch->>Bridge: RunCpuBenchmarkAsync()
+    Bridge->>JS: runCpuBenchmark()
+    JS->>Workers: spawn worker threads
+    loop during execution
+        Workers->>JS: progress update
+        JS->>Orch: OnProgress() via JSInvokable
+        Orch->>State: SetProgress()
+        State-->>Page: OnChange
+    end
+    Workers-->>JS: benchmark complete
+    JS-->>Orch: CpuBenchmarkResult
+    Orch->>Orch: calculate score via CpuScoreCalculator
+    Orch->>State: SetCpu()
+    Orch->>State: SetRunning(false)
+    State-->>Page: OnChange
+
+    U->>Page: Click Run Memory Benchmark
+    Page->>Orch: RunMemoryAsync()
+    Orch->>State: SetRunning(true)
+    Orch->>Bridge: RunMemoryTestAsync()
+    Bridge->>JS: runMemoryTest()
+    JS->>Workers: allocate ArrayBuffer, loop read/write ops
+    Workers-->>JS: Read/Write GB/s, PeakMb
+    JS-->>Orch: MemoryBenchmarkResult
+    Orch->>Orch: calculate score via MemoryScoreCalculator
+    Orch->>State: SetMemory()
+    Orch->>State: SetRunning(false)
+    State-->>Page: OnChange
+```
+
+---
+
+### 10.12 Compile & Export Diagnostic Report
+
+**Actors:** User, ReportPage, ReportOrchestrator, ReportBuilder, ReportState, JS download helper
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Page as ReportPage
+    participant Orch as ReportOrchestrator
+    participant Builder as ReportBuilder
+    participant State as ReportState
+    participant JS as JS download helper
+
+    U->>Page: Click Compile Report
+    Page->>Orch: Compile()
+    Orch->>Orch: read NetworkDiagState
+    Orch->>Orch: read MouseDiagState
+    Orch->>Orch: read KeyboardDiagState
+    Orch->>Orch: read MonitorDiagState
+    Orch->>Orch: read ComputeDiagState
+    Orch->>Orch: read AuthStateContainer
+    Orch->>Builder: Build()
+    Builder-->>Orch: DiagnosticReport
+    Orch->>State: SetReport()
+    State-->>Page: OnChange
+
+    U->>Page: Click Export Markdown
+    Page->>Orch: ToMarkdown()
+    Orch->>Builder: ToMarkdown(report)
+    Builder-->>Orch: markdown string
+    Page->>JS: BenchRigDownload("benchrig-report.md", content)
+    Note over U, JS: Browser initiates local file download
+```
+
+---
+
+### 10.13 Manage Knowledge Base Articles (Admin)
+
+**Actors:** Admin, AdminSolutionsPage, AuthStateContainer, IJsFirestoreBridge, `firestore-interop.js`, Firestore
+
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant Page as AdminSolutionsPage
+    participant Auth as AuthStateContainer
+    participant FS as IJsFirestoreBridge
+    participant JS as firestore-interop.js
+    participant DB as Firestore
+
+    A->>Page: Navigate to /admin/solutions
+    Page->>Auth: check IsAdmin
+    alt Authorized
+        Page->>FS: QueryCollectionAsync(solution_articles)
+        FS->>JS: queryCollection()
+        JS->>DB: get documents
+        DB-->>JS: article list
+        JS-->>Page: articles
+        Page-->>A: render list & editor form
+    else Unauthorized
+        Page-->>A: render Access Denied
+    end
+
+    A->>Page: Fill form, click Create Draft
+    Page->>FS: AddDocumentAsync()
+    FS->>JS: addDocument()
+    JS->>DB: add document
+    DB-->>JS: docId
+    JS-->>Page: success
+    Page->>Page: Load()
+    Page-->>A: reset form, refresh list
+
+    A->>Page: Click Publish on draft
+    Page->>FS: UpdateDocumentAsync(isPublished = true)
+    FS->>JS: updateDocument()
+    JS->>DB: update field
+    Page->>Page: Load()
+    Page-->>A: refresh list
+
+    A->>Page: Click Delete, confirm
+    Page->>FS: DeleteDocumentAsync()
+    FS->>JS: deleteDocument()
+    JS->>DB: delete document
+    Page->>Page: Load()
+    Page-->>A: refresh list
+```
+
+---
+
+### 10.14 Donate via Stripe
+
+**Actors:** User, DonateButton, IJsStripeBridge, `stripe-interop.js`, Stripe API
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Page as DonateButton
+    participant Bridge as IJsStripeBridge
+    participant JS as stripe-interop.js
+    participant Stripe as Stripe API
+
+    Page->>Bridge: GetOptionsAsync()
+    Bridge->>JS: getStripeOptions()
+    JS-->>Page: DonationOptions
+    alt Not Configured
+        Page-->>U: render "Donations aren't set up yet"
+    else Configured
+        Page-->>U: render frequency & amount buttons
+        U->>Page: select amount, click Donate
+        Page->>Bridge: OpenAsync(paymentLinkUrl)
+        Bridge->>JS: openStripeLink()
+        alt valid URL
+            JS->>Stripe: redirect / open tab
+            Stripe-->>U: hosted checkout page
+            JS-->>Bridge: true
+        else placeholder URL
+            JS-->>Bridge: false
+        end
+        Bridge-->>Page: success result
+        opt success == false
+            Page-->>U: "That donation link isn't configured yet."
+        end
+    end
+```
+
+---
+
+## 11. Requirements Traceability Matrix
+
+Maps every functional requirement epic to its use case, sequence diagram, and Firestore data entity.
+
+| Requirement | Use Case | Sequence Diagram | Data Entity |
+| :---: | :---: | :---: | :--- |
+| **FR-A\*** | UC9 | §10.6 | `USERS` |
+| **FR-B\*** | UC1 | §10.1 | Transient |
+| **FR-C\*** | UC2 | §10.7, §10.8, §10.9 | Transient |
+| **FR-D\*** | UC3 | §10.10 | Transient |
+| **FR-E\*** | UC4 | §10.2, §10.11 | `DIAGNOSTIC_REPORTS` |
+| **FR-F\*** | UC5 | §10.12 | `DIAGNOSTIC_REPORTS` |
+| **FR-G\*** | UC6, UC10, UC14 | §10.3 | `FORUM_POSTS`, `COMMENTS`, `RATINGS` |
+| **FR-H\*** | UC6, UC13 | §10.13 | `SOLUTION_ARTICLES` |
+| **FR-I\*** | UC11, UC12 | §10.4 | `SUPPORT_TICKETS`, `RESPONSES` |
+| **FR-J\*** | UC8 | §10.14 | Stripe (external) |
+| **FR-K\*** | UC7 | §10.5 | Ephemeral (no persistence) |
+| **FR-L\*** | UC12, UC13, UC14 | §10.4, §10.13 | `SUPPORT_TICKETS`, `SOLUTION_ARTICLES` |
+
+---
+
+*End of document.*

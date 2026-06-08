@@ -15,17 +15,14 @@
     <div class="tb-actions">
         @if (Auth.IsLoggedIn)
         {
-            <div class="user-chip">
+            <button class="user-chip" title="Account settings" @onclick="@(() => Nav.NavigateTo(AppRoutes.Account))">
                 <span class="avatar">@Initials</span>
-                <div class="user-meta">
+                <span class="user-meta">
                     <span class="user-name">@Auth.CurrentUser!.DisplayName</span>
-                    @if (Auth.IsAdmin)
-                    {
-                        <span class="badge badge-ok">Admin</span>
-                    }
-                </div>
-            </div>
-            <button class="btn btn-ghost" @onclick="SignOut">Sign out</button>
+                    <span class="user-role @(Auth.IsAdmin ? "admin" : "")">@(Auth.IsAdmin ? "Admin" : "Account")</span>
+                </span>
+            </button>
+            <button class="btn btn-ghost tb-signout" @onclick="SignOut">Sign out</button>
         }
         else
         {
@@ -56,6 +53,7 @@
         "/donate" => "Donate",
         "/login" => "Sign In",
         "/register" => "Create Account",
+        "/account" => "Account Settings",
         var p when p.StartsWith("/admin") => "Admin",
         var p when p.StartsWith("/forum/") => "Forum Post",
         _ => "BenchRig",

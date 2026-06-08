@@ -24,6 +24,15 @@ public sealed class FirebaseAuthJsInterop : ModuleInteropBase, IJsFirebaseAuthBr
     public async Task RegisterAuthStateListenerAsync<T>(DotNetObjectReference<T> callbackRef, string callbackMethodName) where T : class
         => await (await ModuleAsync()).InvokeVoidAsync("registerAuthStateListener", callbackRef, callbackMethodName);
 
+    public async Task<UserProfile?> UpdateDisplayNameAsync(string displayName)
+        => MapUser(await (await ModuleAsync()).InvokeAsync<JsonElement?>("updateDisplayName", displayName));
+
+    public async Task ChangePasswordAsync(string currentPassword, string newPassword)
+        => await (await ModuleAsync()).InvokeVoidAsync("changePassword", currentPassword, newPassword);
+
+    public async Task DeleteAccountAsync(string? currentPassword)
+        => await (await ModuleAsync()).InvokeVoidAsync("deleteAccount", currentPassword);
+
     internal static UserProfile? MapUser(JsonElement? element)
     {
         if (element is not { ValueKind: JsonValueKind.Object } e) return null;
@@ -33,6 +42,7 @@ public sealed class FirebaseAuthJsInterop : ModuleInteropBase, IJsFirebaseAuthBr
             Email = e.TryGetProperty("email", out var em) ? em.GetString() ?? "" : "",
             DisplayName = e.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : "",
             PhotoUrl = e.TryGetProperty("photoURL", out var pu) ? pu.GetString() : null,
+            ProviderId = e.TryGetProperty("providerId", out var pi) ? pi.GetString() ?? "password" : "password",
         };
     }
 }
