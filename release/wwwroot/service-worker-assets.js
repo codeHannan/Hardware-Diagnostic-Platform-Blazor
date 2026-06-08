@@ -1,13 +1,13 @@
 self.assetsManifest = {
-  "version": "xpjOhx4i",
+  "version": "3J0faVHf",
   "assets": [
     {
-      "hash": "sha256-t1JXGRAiMttZS9SYXJgA5p2I5pmLt8ssirlNo2oNd0o=",
+      "hash": "sha256-aKRU3mV8WpO4CPtrsOyKuHhINTJqAFHvmTs1oGKMuHo=",
       "url": "BenchRig.App.styles.css"
     },
     {
-      "hash": "sha256-zNIEaepkvf2Z+2vQbyJVgqs8WtGCYHXl5LHY+Z0s+rw=",
-      "url": "_framework/BenchRig.App.sazu3bz4ja.wasm"
+      "hash": "sha256-WHNpEeb5OPNCru1bF0VgockRonF4LkSAze/FcUGtp1U=",
+      "url": "_framework/BenchRig.App.8s6se1b18a.wasm"
     },
     {
       "hash": "sha256-J1yi7WJQ/lrWeNq+sTBXo4SMMXjnH4Yy/9Yb3EYo7yQ=",
@@ -158,12 +158,12 @@ self.assetsManifest = {
       "url": "_framework/dotnet.native.rjbmzc4jpg.js"
     },
     {
-      "hash": "sha256-YyudibIWETMKrLb+nAZdJ+xDY7HY6BWf6s32UAdcvCU=",
-      "url": "_framework/dotnet.runtime.r2kbxkuujc.js"
+      "hash": "sha256-4qQ8YDyXfeHL0zJG+1DXEQgLQtSt9ix/J9b/IfonD/4=",
+      "url": "_framework/dotnet.ql9agz1m5k.js"
     },
     {
-      "hash": "sha256-6Vu8q/tNJXh0QmdhuQ8IJnxnBlu+iJjym4vOAkomqlA=",
-      "url": "_framework/dotnet.x28sce8pn3.js"
+      "hash": "sha256-YyudibIWETMKrLb+nAZdJ+xDY7HY6BWf6s32UAdcvCU=",
+      "url": "_framework/dotnet.runtime.r2kbxkuujc.js"
     },
     {
       "hash": "sha256-SZLtQnRc0JkwqHab0VUVP7T3uBPSeYzxzDnpxPpUnHk=",
@@ -190,7 +190,7 @@ self.assetsManifest = {
       "url": "icon-512.png"
     },
     {
-      "hash": "sha256-6IK6L47p94PoVCoQ+AMcmwxO/k1ZQ4S7Om3tRhEnXv4=",
+      "hash": "sha256-KiD2f/QDgk7n0QT3+3SYKgTa33sxqw+BGSrZXHfpIps=",
       "url": "index.html"
     },
     {
@@ -206,7 +206,7 @@ self.assetsManifest = {
       "url": "js/compute-interop.js"
     },
     {
-      "hash": "sha256-4KTiGSeGTVluvsIyFk7lQa6YKEizbELQi7RYgQ6z73E=",
+      "hash": "sha256-SbuXBBuD3qf3jWZVoBdF1zx/KPOXJW20PWbmkX3T6pc=",
       "url": "js/firebase-auth-interop.js"
     },
     {

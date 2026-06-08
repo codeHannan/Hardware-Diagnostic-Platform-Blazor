@@ -1,92 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Welcome to Firebase Hosting</title>
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BenchRig - Hardware &amp; Network Diagnostic Platform</title>
-    <meta name="description" content="Comprehensive client-side hardware, network, and peripheral diagnostic platform." />
-    <meta name="theme-color" content="#0a0a0c" />
-    <base href="/" />
+    <!-- update the version number as needed -->
+    <script defer src="/__/firebase/12.14.0/firebase-app-compat.js"></script>
+    <!-- include only the Firebase features as you need -->
+    <script defer src="/__/firebase/12.14.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/12.14.0/firebase-database-compat.js"></script>
+    <script defer src="/__/firebase/12.14.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/12.14.0/firebase-functions-compat.js"></script>
+    <script defer src="/__/firebase/12.14.0/firebase-messaging-compat.js"></script>
+    <script defer src="/__/firebase/12.14.0/firebase-storage-compat.js"></script>
+    <script defer src="/__/firebase/12.14.0/firebase-analytics-compat.js"></script>
+    <script defer src="/__/firebase/12.14.0/firebase-remote-config-compat.js"></script>
+    <script defer src="/__/firebase/12.14.0/firebase-performance-compat.js"></script>
+    <!-- 
+      initialize the SDK after all desired features are loaded, set useEmulator to false
+      to avoid connecting the SDK to running emulators.
+    -->
+    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
 
-    <link href="_framework/dotnet.x28sce8pn3.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-6Vu8q/tNJXh0QmdhuQ8IJnxnBlu+iJjym4vOAkomqlA=" />
-
-    <!-- Fonts: Clash Display (display) · Hanken Grotesk (body) · JetBrains Mono (data) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
-    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
-
-    <!-- App styles -->
-    <link rel="stylesheet" href="css/app.css" />
-    <link href="BenchRig.App.styles.css" rel="stylesheet" />
-
-    <!-- PWA -->
-    <link href="manifest.webmanifest" rel="manifest" />
-    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-
-    <!-- LeafletJS CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-
-    <!-- Firebase SDK (ESM) -->
-    <script type="importmap">
-    {
-        "imports": {
-            "firebase/app": "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js",
-            "firebase/auth": "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js",
-            "firebase/firestore": "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js",
-            "firebase/ai": "https://www.gstatic.com/firebasejs/11.10.0/firebase-ai.js"
-        }
-    }
-    </script>
-</head>
-
-<body>
-    <div id="app">
-        <div class="boot">
-            <div class="boot-glow"></div>
-            <div class="boot-ring">
-                <svg class="loading-progress" viewBox="0 0 100 100">
-                    <circle r="44" cx="50" cy="50" />
-                    <circle r="44" cx="50" cy="50" />
-                </svg>
-                <span class="boot-mark">◆</span>
-            </div>
-            <div class="boot-brand">Bench<span>Rig</span></div>
-            <div class="loading-progress-text"></div>
-            <div class="boot-tag">Initializing diagnostics…</div>
-        </div>
+    <style media="screen">
+      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
+      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
+      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
+      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
+      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
+      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
+      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
+      @media (max-width: 600px) {
+        body, #message { margin-top: 0; background: white; box-shadow: none; }
+        body { border-top: 16px solid #ffa100; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="message">
+      <h2>Welcome</h2>
+      <h1>Firebase Hosting Setup Complete</h1>
+      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
+      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
     </div>
+    <p id="load">Firebase SDK Loading&hellip;</p>
 
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
-    </div>
-
-    <!-- LeafletJS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-
-    <!-- Stripe.js -->
-    <script src="https://js.stripe.com/v3/"></script>
-
-    <!-- Tiny global helpers -->
     <script>
-        window.BenchRigDownload = (filename, mime, content) => {
-            const blob = new Blob([content], { type: mime });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click();
-            document.body.removeChild(a); URL.revokeObjectURL(url);
-        };
+      document.addEventListener('DOMContentLoaded', function() {
+        const loadEl = document.querySelector('#load');
+        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+        // // The Firebase SDK is initialized and available here!
+        //
+        // firebase.auth().onAuthStateChanged(user => { });
+        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
+        // firebase.firestore().doc('/foo/bar').get().then(() => { });
+        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
+        // firebase.messaging().requestPermission().then(() => { });
+        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
+        // firebase.analytics(); // call to activate
+        // firebase.analytics().logEvent('tutorial_completed');
+        // firebase.performance(); // call to activate
+        //
+        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+        try {
+          let app = firebase.app();
+          let features = [
+            'auth', 
+            'database', 
+            'firestore',
+            'functions',
+            'messaging', 
+            'storage', 
+            'analytics', 
+            'remoteConfig',
+            'performance',
+          ].filter(feature => typeof app[feature] === 'function');
+          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
+        } catch (e) {
+          console.error(e);
+          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+        }
+      });
     </script>
-
-    <!-- Blazor WASM bootstrap -->
-    <script src="_framework/blazor.webassembly.958z1vx7fr.js"></script>
-    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
-</body>
-
+  </body>
 </html>

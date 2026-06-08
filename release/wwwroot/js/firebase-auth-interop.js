@@ -7,7 +7,12 @@ import {
     GoogleAuthProvider,
     signOut,
     onAuthStateChanged,
-    updateProfile
+    updateProfile,
+    updatePassword,
+    deleteUser,
+    reauthenticateWithCredential,
+    reauthenticateWithPopup,
+    EmailAuthProvider
 } from "firebase/auth";
 
 const googleProvider = new GoogleAuthProvider();
@@ -39,11 +44,53 @@ export function registerAuthStateListener(dotNetRef, methodName) {
     });
 }
 
+// ── Account management ──
+
+// Change the signed-in user's display name (Firebase Auth profile).
+export async function updateDisplayName(name) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Not signed in.");
+    await updateProfile(user, { displayName: name });
+    return mapUser(user);
+}
+
+// Change password (email/password accounts only). Re-authenticates first
+// because Firebase requires a recent login for sensitive operations.
+export async function changePassword(currentPassword, newPassword) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Not signed in.");
+    const cred = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, cred);
+    await updatePassword(user, newPassword);
+}
+
+// Permanently delete the account. Re-authenticates first: password accounts
+// re-enter their password; federated (Google) accounts re-auth via popup.
+export async function deleteAccount(currentPassword) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Not signed in.");
+    if (passwordProvider(user)) {
+        if (!currentPassword) throw new Error("Password required.");
+        const cred = EmailAuthProvider.credential(user.email, currentPassword);
+        await reauthenticateWithCredential(user, cred);
+    } else {
+        await reauthenticateWithPopup(user, googleProvider);
+    }
+    await deleteUser(user);
+}
+
+function passwordProvider(user) {
+    return (user.providerData ?? []).some(p => p.providerId === "password");
+}
+
 function mapUser(user) {
     return {
         uid: user.uid,
         email: user.email,
         displayName: user.displayName ?? (user.email ? user.email.split("@")[0] : "User"),
-        photoURL: user.photoURL
+        photoURL: user.photoURL,
+        // First provider id ("password", "google.com", …) so the UI can decide
+        // whether to offer the password-change form.
+        providerId: user.providerData?.[0]?.providerId ?? "password"
     };
 }
