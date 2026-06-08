@@ -1,0 +1,33 @@
+sequenceDiagram
+    actor U as User
+    participant Panel as SpeedTestPanel
+    participant Orch as NetworkTestOrchestrator
+    participant State as NetworkDiagState
+    participant Bridge as IJsNetworkBridge
+    participant JS as network-interop.js
+    participant CF as Cloudflare Edge
+
+    U->>Panel: Click GO
+    Panel->>Orch: RunFullTestAsync()
+    Orch->>State: BeginTest()
+    Orch->>Bridge: MeasureLatencyAsync(30)
+    Bridge->>JS: measureLatency()
+    JS->>CF: ping requests
+    CF-->>JS: RTTs
+    JS-->>Orch: latency samples
+    Orch->>State: SetLatency(min, avg, max, jitter)
+    Orch->>Bridge: MeasureDownloadAsync(12s, callback)
+    Bridge->>JS: measureDownload()
+    loop every 100 ms
+        JS->>CF: stream chunks (6 parallel)
+        JS-->>Orch: OnDownloadProgress(mbps)
+        Orch->>State: SetLiveMbps()
+        State-->>Panel: OnChange (gauge updates)
+    end
+    JS-->>Orch: {mbps, bloatMs}
+    Orch->>State: SetDownload()
+    Orch->>Bridge: MeasureUploadAsync(8s, callback)
+    Bridge->>JS: measureUpload()
+    JS-->>Orch: upload mbps
+    Orch->>State: CompleteTest(result, stability)
+    State-->>Panel: OnChange (final result shown)

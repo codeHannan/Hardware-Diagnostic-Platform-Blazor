@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor U as User
+    participant Panel as GpuBenchPanel
+    participant Orch as ComputeTestOrchestrator
+    participant Calc as GpuScoreCalculator
+    participant State as ComputeDiagState
+    participant JS as compute-interop.js
+    participant GPU as WebGL2 GPU
+
+    U->>Panel: Select preset, click Run
+    Panel->>Orch: RunGpuAsync(canvas, w, h, steps, ms)
+    Orch->>State: BeginRun()
+    Orch->>JS: runGpuBenchmark(...)
+    loop until duration (yield each ~16ms)
+        JS->>GPU: drawArrays (volumetric ray-march)
+        JS->>GPU: readPixels(1x1) forces real GPU sync
+        GPU-->>JS: pixel (frame complete)
+        JS-->>Orch: OnProgress(percent)
+        Orch->>State: SetProgress()
+        State-->>Panel: OnChange (ring updates)
+    end
+    JS-->>Orch: {avgFps, frames}
+    Orch->>Calc: Score(avgFps, w, h, steps)
+    Calc-->>Orch: normalized score
+    Orch->>State: CompleteGpu(result)
+    State-->>Panel: OnChange (score + reference bars)
