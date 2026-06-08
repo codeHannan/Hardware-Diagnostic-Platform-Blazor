@@ -8,6 +8,7 @@
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
     <StaticWebAssetFingerprintingEnabled>false</StaticWebAssetFingerprintingEnabled>
     <StaticWebAssetsFingerprintContent>false</StaticWebAssetsFingerprintContent>
+    <WasmFingerprintAssets>false</WasmFingerprintAssets>
   </PropertyGroup>
 
   <ItemGroup>
