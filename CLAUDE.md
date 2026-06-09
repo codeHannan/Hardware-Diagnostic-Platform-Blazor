@@ -26,7 +26,7 @@
   all cohesive, responsive, 0 build warn/err, **no console errors**.
 - **Polish pass**: (1) **Boot screen** rebuilt in `index.html` + `app.css` `.boot*` — obsidian + breathing
   ember glow, progress ring (kept Blazor's `--blazor-load-percentage` wiring, r=44 in a 0–100 viewBox),
-  glowing ◆ core, Clash Display "BenchRig" wordmark, % + "Initializing diagnostics…" (verified at 68%).
+  glowing logo core (masked `website-logo.svg`), Clash Display "BenchRig" wordmark, % + "Initializing diagnostics…" (verified at 68%).
   (2) Removed the `v1.0 · .NET 10 · WASM` `sidebar-foot`. (3) **Auth split-screen**: new shared
   `AuthAside.razor` (molten-orb brand panel + feature bullets) beside the form; `.auth-split` grid collapses
   and hides the aside < 860px (Login/Register rebuilt). (4) **SpeedGauge** molten heat-ramp gradient
@@ -58,6 +58,58 @@
   bottom divider lines up pixel-perfect with the topbar's bottom border — one continuous hairline across the
   app (was a ~2px misaligned seam). Verified live: brandBottom=topbarBottom=68; chip/role render; `/account`
   resolves (signed-out → sign-in prompt); Register shows Google button; **0 warn/0 err, no console errors**.
+
+## SVG icon set + logo (current)
+- **User-supplied SVG icons** (first batch dropped in a repo-root `icons/` folder, **relocated to
+  `wwwroot/icons/`** — the correct static-web-asset home, served at `/icons/*.svg`; later additions placed
+  there directly): `dashboard·network·mouse·keyboard·audio·monitor·compute·article·report·forum·support·
+  sign-in·website-logo` (monochrome, mask-themed) + `gemini-logo·gemini-text` (full-colour, inlined).
+- **Themeable via CSS mask** (not `<img>`, which can't recolour a black SVG on the dark theme): new global
+  `.svg-icon` util in `app.css` paints the masked silhouette with `background-color: currentColor` and sizes
+  it `1em` square — so each icon inherits its context's text colour (muted nav → **ember when active**) and
+  is sized by the host's `font-size`. Per-icon `.ico-*` classes just set `--ico: url(../icons/<name>.svg)`.
+- **◆ → uploaded logo** everywhere the brand mark appeared: `Sidebar.razor` `.brand-mark`, `AuthAside.razor`
+  `.auth-logo` (`.auth-logo-mark`), and the **boot screen** `.boot-mark` in `index.html`/`app.css` (mask baked
+  straight into `.boot-mark`, animations/glow preserved). The decorative ◆ list-bullets in `.auth-points` are
+  intentionally **kept** (they're bullets, not the logo).
+- **Sidebar nav + Home tiles** now render `.svg-icon .ico-*` instead of unicode glyphs (Solutions/
+  Admin-Articles → `article`; **Report → dedicated `report.svg` (`ico-report`)**; Tickets → `support`;
+  Admin-Dashboard → `dashboard`). **Donate keeps `♥`** (no donate icon was supplied). `.ni-icon`/`.tile-icon`/
+  `.brand-mark` already set `font-size`+`color`, which the mask util consumes — so existing scoped CSS
+  re-themed automatically.
+- **"Sign in" text → icon-only button**: `Topbar.razor`'s signed-out Sign-in is now a `.tb-iconbtn` ghost
+  button showing `sign-in.svg` (title/aria-label "Sign in"); Register stays a text button.
+- **Gemini chatbot bubble** (`ChatBubble.razor` + `.razor.css`): the floating toggle replaced the old "AI"
+  text. **Both Gemini SVGs are inlined** (not masked) so the spark keeps its multi-colour gradients and the
+  wordmark inherits `currentColor`: closed = the colourful **`gemini-logo`** spark in a compact dark
+  speech-bubble (squared bottom-right corner, ember glow + idle `.pulse`); **on hover the bubble stretches
+  leftward** (right edge pinned) and the **`gemini-text` "Gemini" wordmark** (cream) slides + fades in via a
+  `max-width`/`opacity`/`margin` transition, with a small spark spin. **One persistent button** holds both
+  faces (`.ct-gemini` + `.ct-x`) and toggles `.is-closed`/`.is-open`, so the **`✕` spins + scales its way in
+  and the spark spins out** (and vice-versa) instead of a hard swap; open state is a **dark circle**
+  (gradient `#17171b→#0b0b0d`, not ember — matches the bubble) with the ✕ tinting ember on hover.
+  `prefers-reduced-motion` drops the spin. (Logo/text kept full-colour & themed because mask would flatten
+  them — distinct from the monochrome nav icons.)
+- **Verified live** (preview): all icons 200/`image/svg+xml`; brand mark masked ember `rgb(255,90,44)`;
+  `ico-report` mask = `report.svg`; chat bubble collapses 58px→expands 144px on (forced) hover with the cream
+  wordmark + ember border, open→`✕`, no "AI" text; build clean (0/0); **no console errors**. (Added a repo-root
+  `.claude/launch.json` so the preview launches from the solution root.)
+
+## Favicon / app icons (browser-tab + PWA, current)
+- **Problem**: the browser-tab "compact" icon + PWA/apple icons were still the stock **Blazor purple `@`
+  flame** (`icon-192.png`/`icon-512.png`), and `index.html` had **no `<link rel="icon">`** at all (only
+  `apple-touch-icon`), so the tab fell back to a default. None reflected the BenchRig logo.
+- **Fix**: new **`wwwroot/favicon.svg`** (ember `#ff5a2c` `website-logo` path on an obsidian `#0a0a0c`
+  rounded square) wired in `index.html` as `<link rel="icon" type="image/svg+xml">` (+ png fallbacks).
+  **Regenerated `icon-192.png` (192×192) and `icon-512.png` (512×512)** from the same logo on a full-bleed
+  obsidian square (maskable-safe). No SVG rasterizer was available locally, so the PNGs were rendered via the
+  preview browser's `canvas.toDataURL`, transferred as **checksum-verified base64 chunks**, and decoded on
+  disk (verified valid PNG headers + 192²/512² IHDR dims). **`manifest.webmanifest`** refreshed: name/
+  short_name → "BenchRig", `background_color`/`theme_color` → `#0a0a0c`, icons = favicon.svg (`any`) +
+  192/512 png, all `purpose: "any maskable"`.
+- **Verified live**: `<link rel=icon>` = favicon.svg; favicon.svg `200 image/svg+xml`; icon-192 `192×192`,
+  icon-512 `512×512`, both 200; on-page preview shows the ember-on-obsidian mark (no purple flame); build
+  clean (0/0); **no console errors**.
 
 ## Conventions
 - Namespaces mirror folders under `BenchRig.App.*`.
@@ -249,7 +301,7 @@
   (dropped `GetConfigAsync`/`SetConfigAsync`); `ChatbotJsInterop` trimmed to match; the `AiConfig` record
   deleted from `ChatModels.cs`.
 - **`ChatWindow.razor`** (stripped): no settings panel, no gear (⚙), no provider dropdown, no key field, no
-  model picker. Header = green dot + "BenchRig Assistant" + "Firebase AI" label; body = messages; input +
+  model picker. Header = green dot + "BenchRig Assistant" + "Gemini 3.5 Flash" label; body = messages; input +
   Send. Assistant replies render via `MarkdownRenderer`; errors cleaned to a one-liner ("Couldn't reach the
   assistant. …"). Removed the `.ch-gear`/`.chat-settings`/`.cs-*` CSS.
 - **`FIREBASE_SETUP.md`**: section 7 now states AI Logic (Gemini Developer API, free; recommend App Check)

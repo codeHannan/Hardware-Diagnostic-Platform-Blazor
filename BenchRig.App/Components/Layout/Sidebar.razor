@@ -3,7 +3,7 @@
 
 <aside class="sidebar @(Open ? "open" : "")">
     <div class="brand">
-        <span class="brand-mark">◆</span>
+        <span class="brand-mark svg-icon ico-logo"></span>
         <span class="brand-text">Bench<span class="brand-accent">Rig</span></span>
         <button class="brand-close" title="Close menu" @onclick="() => OnNavigate.InvokeAsync()">✕</button>
     </div>
@@ -11,30 +11,30 @@
     <nav class="nav" @onclick="() => OnNavigate.InvokeAsync()">
         <div class="nav-group">Overview</div>
         <NavLink class="nav-item" href="@AppRoutes.Home" Match="NavLinkMatch.All">
-            <span class="ni-icon">▦</span> Dashboard
+            <span class="ni-icon svg-icon ico-dashboard"></span> Dashboard
         </NavLink>
 
         <div class="nav-group">Diagnostics</div>
-        <NavLink class="nav-item" href="@AppRoutes.Network"><span class="ni-icon">◌</span> Network</NavLink>
-        <NavLink class="nav-item" href="@AppRoutes.Mouse"><span class="ni-icon">▲</span> Mouse</NavLink>
-        <NavLink class="nav-item" href="@AppRoutes.Keyboard"><span class="ni-icon">▥</span> Keyboard</NavLink>
-        <NavLink class="nav-item" href="@AppRoutes.Audio"><span class="ni-icon">◈</span> Audio</NavLink>
-        <NavLink class="nav-item" href="@AppRoutes.Monitor"><span class="ni-icon">▣</span> Monitor</NavLink>
-        <NavLink class="nav-item" href="@AppRoutes.Compute"><span class="ni-icon">✦</span> Compute</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Network"><span class="ni-icon svg-icon ico-network"></span> Network</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Mouse"><span class="ni-icon svg-icon ico-mouse"></span> Mouse</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Keyboard"><span class="ni-icon svg-icon ico-keyboard"></span> Keyboard</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Audio"><span class="ni-icon svg-icon ico-audio"></span> Audio</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Monitor"><span class="ni-icon svg-icon ico-monitor"></span> Monitor</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Compute"><span class="ni-icon svg-icon ico-compute"></span> Compute</NavLink>
 
         <div class="nav-group">Workspace</div>
-        <NavLink class="nav-item" href="@AppRoutes.Report"><span class="ni-icon">▤</span> Report</NavLink>
-        <NavLink class="nav-item" href="@AppRoutes.Forum"><span class="ni-icon">◇</span> Forum</NavLink>
-        <NavLink class="nav-item" href="@AppRoutes.Solutions"><span class="ni-icon">❏</span> Solutions</NavLink>
-        <NavLink class="nav-item" href="@AppRoutes.Support"><span class="ni-icon">✚</span> Support</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Report"><span class="ni-icon svg-icon ico-report"></span> Report</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Forum"><span class="ni-icon svg-icon ico-forum"></span> Forum</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Solutions"><span class="ni-icon svg-icon ico-article"></span> Solutions</NavLink>
+        <NavLink class="nav-item" href="@AppRoutes.Support"><span class="ni-icon svg-icon ico-support"></span> Support</NavLink>
         <NavLink class="nav-item" href="@AppRoutes.Donate"><span class="ni-icon">♥</span> Donate</NavLink>
 
         @if (Auth.IsAdmin)
         {
             <div class="nav-group">Admin</div>
-            <NavLink class="nav-item" href="@AppRoutes.Admin" Match="NavLinkMatch.All"><span class="ni-icon">◉</span> Dashboard</NavLink>
-            <NavLink class="nav-item" href="@AppRoutes.AdminTickets"><span class="ni-icon">✚</span> Tickets</NavLink>
-            <NavLink class="nav-item" href="@AppRoutes.AdminSolutions"><span class="ni-icon">✎</span> Articles</NavLink>
+            <NavLink class="nav-item" href="@AppRoutes.Admin" Match="NavLinkMatch.All"><span class="ni-icon svg-icon ico-dashboard"></span> Dashboard</NavLink>
+            <NavLink class="nav-item" href="@AppRoutes.AdminTickets"><span class="ni-icon svg-icon ico-support"></span> Tickets</NavLink>
+            <NavLink class="nav-item" href="@AppRoutes.AdminSolutions"><span class="ni-icon svg-icon ico-article"></span> Articles</NavLink>
         }
     </nav>
 </aside>

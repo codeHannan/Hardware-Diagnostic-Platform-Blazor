@@ -377,6 +377,33 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 .tile-desc { font-size: .85rem; color: var(--text-1); flex: 1; }
 .tile-go { font-size: .8rem; color: var(--accent-strong); font-weight: 700; margin-top: .4rem; letter-spacing: .02em; }
 
+/* ── SVG icons (CSS mask → inherit currentColor, sized by font-size) ──
+   The masked SVG silhouette is painted with `currentColor`, so every icon
+   picks up its context's text colour (muted nav → ember when active, etc.).
+   Size with `font-size` on the host element (icon is 1em square). */
+.svg-icon {
+    display: inline-block;
+    width: 1em; height: 1em;
+    flex-shrink: 0;
+    background-color: currentColor;
+    vertical-align: -0.14em;
+    -webkit-mask: var(--ico) center / contain no-repeat;
+    mask: var(--ico) center / contain no-repeat;
+}
+.ico-dashboard { --ico: url(../icons/dashboard.svg); }
+.ico-network   { --ico: url(../icons/network.svg); }
+.ico-mouse     { --ico: url(../icons/mouse.svg); }
+.ico-keyboard  { --ico: url(../icons/keyboard.svg); }
+.ico-audio     { --ico: url(../icons/audio.svg); }
+.ico-monitor   { --ico: url(../icons/monitor.svg); }
+.ico-compute   { --ico: url(../icons/compute.svg); }
+.ico-article   { --ico: url(../icons/article.svg); }
+.ico-report    { --ico: url(../icons/report.svg); }
+.ico-forum     { --ico: url(../icons/forum.svg); }
+.ico-support   { --ico: url(../icons/support.svg); }
+.ico-signin    { --ico: url(../icons/sign-in.svg); }
+.ico-logo      { --ico: url(../icons/website-logo.svg); }
+
 /* ── Auth (split screen) ── */
 .auth-wrap { display: grid; place-items: center; min-height: 72vh; }   /* legacy fallback */
 .auth-split {
@@ -403,6 +430,7 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 .auth-brand-inner { position: relative; z-index: 1; }
 .auth-logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; color: var(--cream); letter-spacing: -.02em; margin-bottom: 1.4rem; }
 .auth-logo span { color: var(--ember); }
+.auth-logo .auth-logo-mark { color: var(--ember); margin-right: .45rem; filter: drop-shadow(0 0 8px var(--glow-soft)); }
 .auth-brand h2 { font-size: clamp(1.6rem, 2.6vw, 2.2rem); line-height: 1.06; margin-bottom: .7rem; }
 .auth-brand p { color: var(--text-1); max-width: 420px; font-size: 1rem; }
 .auth-points { list-style: none; padding: 0; margin: 1.4rem 0 0; display: flex; flex-direction: column; gap: .6rem; }
@@ -476,7 +504,10 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
     filter: drop-shadow(0 0 8px var(--glow));
 }
 .boot-mark {
-    font-size: 2.6rem; color: var(--ember);
+    width: 2.6rem; height: 2.6rem;
+    background-color: var(--ember);
+    -webkit-mask: url(../icons/website-logo.svg) center / contain no-repeat;
+    mask: url(../icons/website-logo.svg) center / contain no-repeat;
     filter: drop-shadow(0 0 14px var(--glow));
     animation: boot-pulse 2.2s ease-in-out infinite;
 }

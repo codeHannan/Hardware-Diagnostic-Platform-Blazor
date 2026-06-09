@@ -26,7 +26,9 @@
         }
         else
         {
-            <button class="btn btn-ghost" @onclick="@(() => Nav.NavigateTo(AppRoutes.Login))">Sign in</button>
+            <button class="btn btn-ghost tb-iconbtn" title="Sign in" aria-label="Sign in" @onclick="@(() => Nav.NavigateTo(AppRoutes.Login))">
+                <span class="svg-icon ico-signin"></span>
+            </button>
             <button class="btn btn-primary" @onclick="@(() => Nav.NavigateTo(AppRoutes.Register))">Register</button>
         }
     </div>

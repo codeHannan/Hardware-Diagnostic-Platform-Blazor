@@ -482,15 +482,14 @@ classDiagram
 ## 8. UML Class Diagram (Design Level)
 
 A representative slice of the Clean Architecture design, using the Network diagnostic suite as the canonical example. The same pattern repeats for every other diagnostic suite.
-
 ```mermaid
 classDiagram
     class StateContainerBase {
+        <<abstract>>
         +OnChange()
         #NotifyStateChanged()
         #NotifyThrottled()
     }
-    <<abstract>> StateContainerBase
 
     class NetworkDiagState {
         +SpeedPhase Phase
@@ -501,12 +500,14 @@ classDiagram
         +SetUpload()
         +CompleteTest()
     }
+    
     class AuthStateContainer {
         +UserProfile CurrentUser
         +bool IsLoggedIn
         +bool IsAdmin
         +bool IsInitialized
     }
+    
     class ForumState
     class ChatbotState
 
@@ -516,15 +517,18 @@ classDiagram
         +OnDownloadProgress()
         +OnUploadProgress()
     }
+    
     class ComputeTestOrchestrator {
         +RunCpuAsync()
         +RunGpuAsync()
         +RunMemoryAsync()
     }
+    
     class ReportOrchestrator {
         +Compile()
         +ToMarkdown()
     }
+    
     class AuthService {
         +InitializeAsync()
         +SignInWithEmailAsync()
@@ -533,35 +537,39 @@ classDiagram
     }
 
     class IJsNetworkBridge {
+        <<interface>>
         +MeasureLatencyAsync()
         +MeasureDownloadAsync()
         +MeasureUploadAsync()
         +GetNetworkInfoAsync()
     }
-    <<interface>> IJsNetworkBridge
 
     class IJsFirestoreBridge {
+        <<interface>>
         +AddDocumentAsync()
         +QueryCollectionAsync()
         +UpdateDocumentAsync()
         +CountCollectionAsync()
     }
-    <<interface>> IJsFirestoreBridge
 
     class IJsComputeBridge {
+        <<interface>>
         +RunGpuBenchmarkAsync()
         +RunCpuBenchmarkAsync()
     }
-    <<interface>> IJsComputeBridge
 
     class ModuleInteropBase {
+        <<abstract>>
         #ModuleAsync()
     }
-    <<abstract>> ModuleInteropBase
 
     class NetworkJsInterop
     class FirestoreJsInterop
-    class GpuScoreCalculator { +Score() }
+    
+    class GpuScoreCalculator {
+        +Score()
+    }
+    
     class CpuScoreCalculator
     class JitterCalculator
     class NetworkDiagPage
