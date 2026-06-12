@@ -1,7 +1,7 @@
 .speaker-room {
     position: relative; height: 320px; margin: 1rem auto; max-width: 520px;
     border: 1px solid var(--border); border-radius: var(--r-lg);
-    background: radial-gradient(circle at 50% 45%, #2a313b, var(--bg-0));
+    background: radial-gradient(circle at 50% 45%, var(--pad-active-2), var(--bg-0));
 }
 .listener {
     position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);

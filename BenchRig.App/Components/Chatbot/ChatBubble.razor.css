@@ -38,9 +38,9 @@
     width: 56px; padding: 0; border-radius: 50%;
     border-color: var(--border);
     background:
-        radial-gradient(120% 150% at 22% 12%, rgba(255, 255, 255, .04), transparent 52%),
-        linear-gradient(158deg, #17171b, #0b0b0d);
-    box-shadow: 0 10px 26px -8px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .04);
+        radial-gradient(120% 150% at 22% 12%, var(--sheen-strong), transparent 52%),
+        linear-gradient(158deg, var(--surface-2), var(--surface-3));
+    box-shadow: 0 10px 26px -10px var(--shadow-ink), inset 0 1px 0 var(--inset-hi);
 }
 .is-open:hover {
     transform: translateY(-2px);

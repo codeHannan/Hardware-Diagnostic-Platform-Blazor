@@ -13,7 +13,7 @@
 .nav-backdrop {
     display: none;
     position: fixed; inset: 0; z-index: 90;
-    background: rgba(5, 5, 7, 0.6);
+    background: var(--nav-backdrop);
     backdrop-filter: blur(3px);
     opacity: 0; transition: opacity .25s ease;
 }

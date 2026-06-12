@@ -7,5 +7,5 @@
 .dz-cross::before, .dz-cross::after { content: ""; position: absolute; background: var(--accent); }
 .dz-cross::before { left: 5px; top: -6px; width: 2px; height: 22px; }
 .dz-cross::after { top: 5px; left: -6px; height: 2px; width: 22px; }
-.dz-overlay { position: absolute; inset: 0; display: grid; place-items: center; color: var(--cream); font-weight: 700; background: rgba(10,10,12,.5); pointer-events: none; }
+.dz-overlay { position: absolute; inset: 0; display: grid; place-items: center; color: var(--cream); font-weight: 700; background: var(--veil-soft); pointer-events: none; }
 .dz-hint { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-2); font-size: .92rem; pointer-events: none; }

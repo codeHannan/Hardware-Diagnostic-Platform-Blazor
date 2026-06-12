@@ -9,3 +9,6 @@
 
 # Blazor WebAssembly specific build outputs
 wwwroot/dist/
+
+# Claude Code
+.claude/

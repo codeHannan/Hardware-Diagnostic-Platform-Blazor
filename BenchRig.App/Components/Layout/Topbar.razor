@@ -1,6 +1,7 @@
 ﻿@inject AuthStateContainer Auth
 @inject NavigationManager Nav
 @inject AuthService AuthSvc
+@inject IJSRuntime JS
 @implements IDisposable
 
 <header class="topbar">
@@ -13,6 +14,12 @@
     </div>
 
     <div class="tb-actions">
+        <button class="btn btn-ghost tb-iconbtn tb-theme"
+                title="@(_dark ? "Switch to light theme" : "Switch to dark theme")"
+                aria-label="@(_dark ? "Switch to light theme" : "Switch to dark theme")"
+                @onclick="ToggleTheme">
+            <span class="svg-icon @(_dark ? "ico-sun" : "ico-moon")"></span>
+        </button>
         @if (Auth.IsLoggedIn)
         {
             <button class="user-chip" title="Account settings" @onclick="@(() => Nav.NavigateTo(AppRoutes.Account))">
@@ -72,10 +79,28 @@
         }
     }
 
+    private bool _dark;
+
     protected override void OnInitialized()
     {
         Auth.OnChange += StateHasChanged;
         Nav.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // index.html applies the theme before Blazor boots; sync the icon to it.
+            _dark = await JS.InvokeAsync<string>("BenchRigTheme.get") == "dark";
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        _dark = !_dark;
+        await JS.InvokeVoidAsync("BenchRigTheme.set", _dark ? "dark" : "light");
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => StateHasChanged();

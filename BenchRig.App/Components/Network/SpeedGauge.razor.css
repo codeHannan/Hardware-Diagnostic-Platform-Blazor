@@ -1,14 +1,14 @@
 .speed-gauge { position: relative; width: 100%; max-width: 300px; margin: 0 auto; aspect-ratio: 1; }
 .speed-gauge svg { width: 100%; height: 100%; display: block; }
 
-.sg-track { fill: none; stroke: rgba(244, 241, 236, 0.06); stroke-width: 12; stroke-linecap: round; }
+.sg-track { fill: none; stroke: var(--track); stroke-width: 12; stroke-linecap: round; }
 .sg-fill {
     fill: none; stroke: url(#sgGrad); stroke-width: 12; stroke-linecap: round;
     transition: stroke-dashoffset .45s cubic-bezier(.22,.61,.36,1);
     filter: drop-shadow(0 0 10px var(--glow));
 }
 .sg-tip {
-    fill: #fff3ec;
+    fill: #eaf4fc;
     transition: cx .45s cubic-bezier(.22,.61,.36,1), cy .45s cubic-bezier(.22,.61,.36,1);
     filter: drop-shadow(0 0 8px var(--ember)) drop-shadow(0 0 4px var(--ember-2));
 }

@@ -1,49 +1,73 @@
 /* ============================================================
    BenchRig — Global stylesheet & design tokens
-   Aesthetic: "MOLTEN CORE" — obsidian-black premium diagnostics
-   console with a molten ember (red→orange) accent for live data.
-   Reference mood: onyxproject.com (dark, luxe, lava-core glow).
+   Aesthetic: "LINEN ATELIER" — warm beige diagnostics console
+   on ruled paper (horizontal + diagonal hairlines), with frosted
+   cream "glass" tiles and a calm powder-blue accent for live data.
    Type: Clash Display (display) · Hanken Grotesk (body) · JetBrains Mono (data)
    ============================================================ */
 
 :root {
-    /* -- Obsidian surfaces -- */
-    --bg: #0a0a0c;            /* app background */
-    --bg-1: #0a0a0c;          /* (alias kept for legacy refs) */
-    --bg-0: #050507;          /* deepest wells (inputs, pads) */
-    --surface-1: #131316;     /* raised */
-    --surface-2: #1a1a1e;     /* cards / panels */
-    --surface-3: #26262c;     /* hover / inputs */
+    /* -- Beige surfaces -- */
+    --bg: #E4DBC8;            /* app background (warm beige) */
+    --bg-1: #E4DBC8;          /* (alias kept for legacy refs) */
+    --bg-0: #D8CEB8;          /* deepest wells (inputs, pads) — deeper beige */
+    --surface-1: #F1EBDD;     /* raised cream */
+    --surface-2: #F7F2E8;     /* cards / panels (lightest cream — "another shade") */
+    --surface-3: #EAE2D1;     /* hover / inputs */
 
-    /* -- Molten ember accent -- */
-    --ember: #ff5a2c;
-    --ember-2: #ff8a4c;       /* hot orange (gradient / glow) */
-    --ember-deep: #e23c12;    /* pressed */
-    --accent: #ff5a2c;        /* alias used across the app */
-    --accent-strong: #ff8147; /* lighter ember for gradients */
-    --cream: #faf8f4;         /* near-white headline / highlight */
+    /* -- Powder-blue accent -- */
+    --ember: #5B9BD5;         /* (legacy name kept) primary accent */
+    --ember-2: #85BEE8;       /* lighter sky (gradient / glow) */
+    --ember-deep: #3D82C2;    /* deeper blue (pressed / gradient base) */
+    --accent: #5B9BD5;        /* alias used across the app */
+    --accent-strong: #3D82C2; /* deeper blue for links / gradients */
+    --cream: #272219;         /* repurposed: deep ink for headlines / highlights */
 
-    /* -- Text -- */
-    --text-0: #ece8e2;        /* primary (bone) */
-    --text-1: #aaa59d;        /* secondary (warm gray) */
-    --text-2: #726e68;        /* muted */
-    --text-on-accent: #1c0c04;/* dark text on ember fills */
+    /* -- Text (dark warm on beige) -- */
+    --text-0: #322D24;        /* primary (espresso) */
+    --text-1: #615A4D;        /* secondary (warm gray) */
+    --text-2: #928A7B;        /* muted */
+    --text-on-accent: #0b2a45;/* deep navy text on blue fills */
 
     /* -- Semantic -- */
-    --ok: #4cc38a;
-    --warn: #f0b03e;
-    --bad: #f0556b;
-    --info: #5aa9e6;
+    --ok: #3F9E72;
+    --warn: #C7882C;
+    --bad: #D45568;
+    --info: #4E92CE;
 
     /* -- Lines & glows -- */
-    --border: rgba(244, 241, 236, 0.09);
-    --border-soft: rgba(244, 241, 236, 0.055);
-    --border-strong: rgba(244, 241, 236, 0.16);
-    --glow: rgba(255, 90, 44, 0.32);
-    --glow-soft: rgba(255, 90, 44, 0.16);
-    --shadow-card: 0 10px 32px -14px rgba(0, 0, 0, 0.8);
-    --shadow-pop: 0 28px 70px -20px rgba(0, 0, 0, 0.85);
-    --shadow-glow: 0 10px 34px -8px var(--glow);
+    --border: rgba(74, 60, 38, 0.14);
+    --border-soft: rgba(74, 60, 38, 0.08);
+    --border-strong: rgba(74, 60, 38, 0.22);
+    --glow: rgba(91, 155, 213, 0.40);
+    --glow-soft: rgba(91, 155, 213, 0.20);
+    --shadow-card: 0 12px 30px -18px rgba(70, 55, 30, 0.45);
+    --shadow-pop: 0 30px 64px -26px rgba(70, 55, 30, 0.45);
+    --shadow-glow: 0 12px 32px -10px var(--glow);
+
+    /* -- Theme-dependent surfaces (overridden by the dark theme) -- */
+    --topbar-bg: rgba(244, 239, 229, 0.72);
+    --sidebar-1: #EFE8D9;              /* sidebar gradient top */
+    --sidebar-2: #E7DFCD;              /* sidebar gradient bottom */
+    --nav-backdrop: rgba(44, 36, 22, 0.42);
+    --hover-tint: rgba(74, 60, 38, 0.05);   /* ghost / nav / table-row hover */
+    --track: rgba(74, 60, 38, 0.12);        /* gauge & loading-ring track */
+    --glass-1: rgba(247, 242, 232, 0.80);
+    --glass-2: rgba(241, 235, 221, 0.72);
+    --card-sheen: rgba(255, 255, 255, 0.40);  /* top-light wash on cards */
+    --inset-hi: rgba(255, 255, 255, 0.45);    /* 1px inset highlight */
+    --sheen-strong: rgba(255, 255, 255, 0.50);/* radial sheen (chat toggle) */
+    --shadow-ink: rgba(70, 55, 30, 0.45);     /* loose drop shadows */
+    --input-focus-bg: #FBF7EE;
+    --pad-face: #FBF7EF;               /* click-pad resting centre */
+    --pad-active-1: #DCEAF6;           /* click-pad pressed (light blue) */
+    --pad-active-2: #CFE0EF;
+    --veil-strong: rgba(247, 242, 232, 0.85); /* overlay veils */
+    --veil-soft: rgba(247, 242, 232, 0.55);
+    --paper-line-h: rgba(120, 100, 66, 0.055);/* ruled-paper hairlines */
+    --paper-line-d: rgba(120, 100, 66, 0.045);
+
+    color-scheme: light;
 
     /* -- Radius & spacing -- */
     --r-sm: 10px;
@@ -60,6 +84,64 @@
     --mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
 }
 
+/* ============================================================
+   "MIDNIGHT ATELIER" — dark theme (html[data-theme="dark"])
+   Same linen console with the lights off: warm charcoal
+   surfaces, cream ink, identical powder-blue accent.
+   Toggled by the topbar button; persisted in localStorage.
+   ============================================================ */
+html[data-theme="dark"] {
+    color-scheme: dark;
+
+    /* -- Charcoal surfaces -- */
+    --bg: #211E18;
+    --bg-1: #211E18;
+    --bg-0: #17150F;
+    --surface-1: #2A2720;
+    --surface-2: #322E26;
+    --surface-3: #3B362C;
+
+    /* -- Powder-blue accent (links lighten instead of darken) -- */
+    --accent-strong: #8CC0E8;
+    --cream: #F3EDDE;          /* headlines return to actual cream */
+
+    /* -- Text (warm light on charcoal) -- */
+    --text-0: #E9E3D3;
+    --text-1: #B3AB97;
+    --text-2: #837B69;
+
+    /* -- Lines & glows -- */
+    --border: rgba(233, 222, 191, 0.13);
+    --border-soft: rgba(233, 222, 191, 0.07);
+    --border-strong: rgba(233, 222, 191, 0.22);
+    --glow: rgba(91, 155, 213, 0.45);
+    --glow-soft: rgba(91, 155, 213, 0.22);
+    --shadow-card: 0 12px 30px -18px rgba(0, 0, 0, 0.65);
+    --shadow-pop: 0 30px 64px -26px rgba(0, 0, 0, 0.65);
+
+    /* -- Theme-dependent surfaces -- */
+    --topbar-bg: rgba(36, 33, 26, 0.72);
+    --sidebar-1: #26231C;
+    --sidebar-2: #1F1C16;
+    --nav-backdrop: rgba(0, 0, 0, 0.55);
+    --hover-tint: rgba(233, 222, 191, 0.06);
+    --track: rgba(233, 222, 191, 0.12);
+    --glass-1: rgba(50, 46, 38, 0.80);
+    --glass-2: rgba(42, 39, 32, 0.72);
+    --card-sheen: rgba(255, 255, 255, 0.04);
+    --inset-hi: rgba(255, 255, 255, 0.05);
+    --sheen-strong: rgba(255, 255, 255, 0.07);
+    --shadow-ink: rgba(0, 0, 0, 0.60);
+    --input-focus-bg: #211D15;
+    --pad-face: #211E16;
+    --pad-active-1: #1F3850;
+    --pad-active-2: #16293B;
+    --veil-strong: rgba(28, 26, 20, 0.85);
+    --veil-soft: rgba(28, 26, 20, 0.55);
+    --paper-line-h: rgba(216, 206, 184, 0.045);
+    --paper-line-d: rgba(216, 206, 184, 0.035);
+}
+
 /* -- Reset -- */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; height: 100%; }
@@ -71,8 +153,13 @@ body {
     font-size: 15px;
     line-height: 1.55;
     background:
-        radial-gradient(1000px 560px at 100% -8%, rgba(255, 90, 44, 0.12), transparent 58%),
-        radial-gradient(760px 520px at -8% 112%, rgba(255, 138, 76, 0.05), transparent 55%),
+        /* soft powder-blue accent glows in the corners */
+        radial-gradient(1000px 560px at 100% -8%, rgba(91, 155, 213, 0.16), transparent 58%),
+        radial-gradient(820px 520px at -8% 112%, rgba(133, 190, 232, 0.10), transparent 55%),
+        /* horizontal hairlines (ruled paper) */
+        repeating-linear-gradient(0deg, var(--paper-line-h) 0 1px, transparent 1px 30px),
+        /* diagonal hairlines */
+        repeating-linear-gradient(45deg, var(--paper-line-d) 0 1px, transparent 1px 21px),
         var(--bg);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
@@ -80,17 +167,19 @@ body {
     text-rendering: optimizeLegibility;
 }
 
-/* Subtle film-grain texture for premium depth (behind all content) */
+/* Subtle paper-grain texture for premium depth (behind all content) */
 body::before {
     content: "";
     position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.04;
-    mix-blend-mode: overlay;
+    opacity: 0.035;
+    mix-blend-mode: multiply;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
+/* multiply-blended grain disappears into charcoal — lift it instead */
+html[data-theme="dark"] body::before { mix-blend-mode: screen; opacity: 0.05; }
 
 h1, h2, h3, h4 {
     font-family: var(--font-display);
@@ -103,10 +192,10 @@ h1, h2, h3, h4 {
 h1 { letter-spacing: -0.035em; }
 p { color: var(--text-1); line-height: 1.62; }
 a { color: var(--accent-strong); text-decoration: none; transition: color .15s ease; }
-a:hover { color: var(--cream); }
+a:hover { color: var(--ember); }
 b, strong { color: var(--text-0); font-weight: 600; }
 
-::selection { background: var(--ember); color: var(--text-on-accent); }
+::selection { background: var(--ember); color: #fff; }
 
 /* -- Scrollbar -- */
 ::-webkit-scrollbar { width: 11px; height: 11px; }
@@ -126,17 +215,17 @@ b, strong { color: var(--text-0); font-weight: 600; }
    ============================================================ */
 
 .glass {
-    background: linear-gradient(180deg, rgba(26, 26, 30, 0.82), rgba(19, 19, 22, 0.82));
+    background: linear-gradient(180deg, var(--glass-1), var(--glass-2));
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    box-shadow: var(--shadow-card);
-    backdrop-filter: blur(14px) saturate(1.2);
+    box-shadow: var(--shadow-card), inset 0 1px 0 var(--inset-hi);
+    backdrop-filter: blur(14px) saturate(1.15);
 }
 
 .card {
     position: relative;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%),
+        linear-gradient(180deg, var(--card-sheen), transparent 42%),
         linear-gradient(180deg, var(--surface-2), var(--surface-1));
     border: 1px solid var(--border);
     border-radius: var(--r-md);
@@ -179,7 +268,7 @@ b, strong { color: var(--text-0); font-weight: 600; }
     justify-content: center;
     gap: 0.5rem;
 }
-.btn:hover { background: var(--surface-3); border-color: var(--accent); color: var(--cream); box-shadow: 0 0 0 1px var(--glow-soft); }
+.btn:hover { background: var(--surface-2); border-color: var(--accent); color: var(--cream); box-shadow: 0 0 0 1px var(--glow-soft); }
 .btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
@@ -187,13 +276,13 @@ b, strong { color: var(--text-0); font-weight: 600; }
     background: linear-gradient(135deg, var(--ember-2), var(--ember) 55%, var(--ember-deep));
     color: var(--text-on-accent);
     border-color: transparent;
-    box-shadow: 0 6px 22px -6px var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 22px -8px var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
     font-weight: 700;
 }
-.btn-primary:hover { filter: brightness(1.07); box-shadow: 0 10px 30px -6px var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.3); color: var(--text-on-accent); }
+.btn-primary:hover { filter: brightness(1.05); box-shadow: 0 12px 30px -8px var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.5); color: var(--text-on-accent); }
 
 .btn-ghost { background: transparent; border-color: var(--border-strong); color: var(--text-1); }
-.btn-ghost:hover { background: rgba(255, 255, 255, 0.03); color: var(--cream); }
+.btn-ghost:hover { background: var(--hover-tint); color: var(--cream); }
 
 .btn-block { width: 100%; justify-content: center; }
 
@@ -213,7 +302,7 @@ b, strong { color: var(--text-0); font-weight: 600; }
 .input:focus, .textarea:focus, .select:focus {
     outline: none;
     border-color: var(--ember);
-    background: #0c0c0e;
+    background: var(--input-focus-bg);
     box-shadow: 0 0 0 3px var(--glow-soft);
 }
 .select { cursor: pointer; }
@@ -236,9 +325,9 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
     text-transform: uppercase;
     border: 1px solid var(--border);
 }
-.badge-ok { background: rgba(76, 195, 138, 0.14); color: var(--ok); border-color: rgba(76, 195, 138, 0.25); }
-.badge-warn { background: rgba(240, 176, 62, 0.14); color: var(--warn); border-color: rgba(240, 176, 62, 0.25); }
-.badge-bad { background: rgba(240, 85, 107, 0.14); color: var(--bad); border-color: rgba(240, 85, 107, 0.25); }
+.badge-ok { background: rgba(63, 158, 114, 0.14); color: var(--ok); border-color: rgba(63, 158, 114, 0.28); }
+.badge-warn { background: rgba(199, 136, 44, 0.14); color: var(--warn); border-color: rgba(199, 136, 44, 0.28); }
+.badge-bad { background: rgba(212, 85, 104, 0.14); color: var(--bad); border-color: rgba(212, 85, 104, 0.28); }
 
 /* -- Animations -- */
 @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -246,7 +335,7 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 
 @keyframes pulse-glow {
     0%, 100% { box-shadow: 0 0 0 0 var(--glow), 0 8px 24px -6px var(--glow); }
-    50% { box-shadow: 0 0 0 10px rgba(255, 90, 44, 0), 0 8px 24px -6px var(--glow); }
+    50% { box-shadow: 0 0 0 10px rgba(91, 155, 213, 0), 0 8px 24px -6px var(--glow); }
 }
 .pulse { animation: pulse-glow 2.4s ease-in-out infinite; }
 
@@ -273,7 +362,7 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 .data-table th, .data-table td { text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--border); }
 .data-table th { color: var(--text-2); font-weight: 600; text-transform: uppercase; font-size: .7rem; letter-spacing: .06em; }
 .data-table td { font-family: var(--mono); color: var(--text-0); }
-.data-table tr:hover td { background: rgba(255, 255, 255, 0.015); }
+.data-table tr:hover td { background: var(--hover-tint); }
 
 /* ── Tabbed diagnostic suites ── */
 .tabbar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.4rem; padding-bottom: 1.1rem; border-bottom: 1px solid var(--border); }
@@ -291,12 +380,12 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 .click-pad {
     position: relative; overflow: hidden; user-select: none; cursor: pointer;
     border: 1px dashed var(--border-strong); border-radius: var(--r-md);
-    background: radial-gradient(circle at 50% 38%, #18120f, var(--bg-0));
+    background: radial-gradient(circle at 50% 38%, var(--pad-face), var(--bg-0));
     min-height: 280px; display: grid; place-items: center; text-align: center;
     transition: background .06s ease, border-color .14s ease, box-shadow .14s ease;
     touch-action: none;
 }
-.click-pad:active { border-color: var(--ember); background: radial-gradient(circle at 50% 38%, #241712, #120d0a); box-shadow: inset 0 0 60px -20px var(--glow); }
+.click-pad:active { border-color: var(--ember); background: radial-gradient(circle at 50% 38%, var(--pad-active-1), var(--pad-active-2)); box-shadow: inset 0 0 60px -20px var(--glow); }
 .click-pad.armed { border-color: var(--ember); box-shadow: 0 0 0 1px var(--glow-soft); }
 .pad-big { font-size: 3.6rem; font-weight: 700; font-family: var(--mono); color: var(--cream); line-height: 1; letter-spacing: -.03em; }
 .pad-sub { color: var(--text-2); font-size: .92rem; margin-top: .4rem; }
@@ -339,8 +428,8 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 .kbd-arrows .kcap { flex: 0 0 46px; }
 .chip-list { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; min-height: 2rem; }
 .keychip { font-family: var(--mono); font-size: .8rem; padding: .25rem .6rem; border-radius: var(--r-sm); background: var(--surface-3); color: var(--cream); border: 1px solid var(--border); }
-.keychip.warn { background: rgba(240, 176, 62, .16); color: var(--warn); }
-.keychip.bad { background: rgba(240, 85, 107, .16); color: var(--bad); }
+.keychip.warn { background: rgba(199, 136, 44, .16); color: var(--warn); }
+.keychip.bad { background: rgba(212, 85, 104, .16); color: var(--bad); }
 
 /* ── Benchmark comparison bars ── */
 .cmp-title { font-size: .95rem; margin: 1.4rem 0 .7rem; }
@@ -361,7 +450,7 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
     display: flex; flex-direction: column; gap: .35rem;
     padding: 1.4rem; border-radius: var(--r-md);
     background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
-    border: 1px solid var(--border); box-shadow: var(--shadow-card);
+    border: 1px solid var(--border); box-shadow: var(--shadow-card), inset 0 1px 0 var(--inset-hi);
     text-decoration: none; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
     min-height: 144px;
 }
@@ -379,7 +468,7 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 
 /* ── SVG icons (CSS mask → inherit currentColor, sized by font-size) ──
    The masked SVG silhouette is painted with `currentColor`, so every icon
-   picks up its context's text colour (muted nav → ember when active, etc.).
+   picks up its context's text colour (muted nav → blue when active, etc.).
    Size with `font-size` on the host element (icon is 1em square). */
 .svg-icon {
     display: inline-block;
@@ -403,6 +492,8 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 .ico-support   { --ico: url(../icons/support.svg); }
 .ico-signin    { --ico: url(../icons/sign-in.svg); }
 .ico-logo      { --ico: url(../icons/website-logo.svg); }
+.ico-sun       { --ico: url(../icons/sun.svg); }
+.ico-moon      { --ico: url(../icons/moon.svg); }
 
 /* ── Auth (split screen) ── */
 .auth-wrap { display: grid; place-items: center; min-height: 72vh; }   /* legacy fallback */
@@ -416,14 +507,15 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
     position: relative; overflow: hidden;
     border-radius: var(--r-lg); border: 1px solid var(--border);
     background:
-        radial-gradient(600px 420px at 78% 26%, rgba(255, 90, 44, 0.16), transparent 60%),
+        radial-gradient(600px 420px at 78% 26%, rgba(91, 155, 213, 0.20), transparent 60%),
         linear-gradient(180deg, var(--surface-2), var(--surface-1));
     padding: 2.6rem;
     display: flex; align-items: flex-end;
+    box-shadow: var(--shadow-card), inset 0 1px 0 var(--inset-hi);
 }
 .auth-orb {
     position: absolute; top: -70px; right: -70px; width: 320px; height: 320px; border-radius: 50%;
-    background: radial-gradient(circle at 38% 36%, #fff1e8 2%, var(--ember-2) 18%, var(--ember) 42%, var(--ember-deep) 62%, transparent 76%);
+    background: radial-gradient(circle at 38% 36%, #eaf4fc 2%, var(--ember-2) 18%, var(--ember) 42%, var(--ember-deep) 62%, transparent 76%);
     filter: blur(8px); opacity: .8; animation: orb-pulse 6s ease-in-out infinite;
 }
 @keyframes orb-pulse { 0%, 100% { transform: scale(1); opacity: .75; } 50% { transform: scale(1.06); opacity: 1; } }
@@ -456,7 +548,7 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
     background: var(--surface-2);
     color: var(--text-0);
     bottom: 0;
-    box-shadow: 0 -1px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 -1px 12px rgba(70, 55, 30, 0.25);
     display: none;
     left: 0;
     padding: 0.8rem 1.4rem;
@@ -467,13 +559,15 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 }
 #blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 1rem; top: 0.75rem; }
 
-/* ── Boot / loading screen (molten core) ── */
+/* ── Boot / loading screen (linen + powder blue) ── */
 .boot {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
     font-family: var(--font);
     background:
-        radial-gradient(620px 420px at 50% 34%, rgba(255, 90, 44, 0.12), transparent 62%),
+        radial-gradient(620px 420px at 50% 34%, rgba(91, 155, 213, 0.16), transparent 62%),
+        repeating-linear-gradient(0deg, var(--paper-line-h) 0 1px, transparent 1px 30px),
+        repeating-linear-gradient(45deg, var(--paper-line-d) 0 1px, transparent 1px 21px),
         var(--bg);
     animation: fade-in .4s ease both;
 }
@@ -493,7 +587,7 @@ label { font-size: 0.8rem; color: var(--text-1); font-weight: 600; letter-spacin
 }
 .loading-progress circle {
     fill: none;
-    stroke: rgba(244, 241, 236, 0.08);
+    stroke: var(--track);
     stroke-width: 4;
 }
 .loading-progress circle:last-child {

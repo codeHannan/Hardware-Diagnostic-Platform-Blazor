@@ -2,7 +2,7 @@
     height: var(--topbar-h);
     display: flex; align-items: center; gap: 1rem;
     padding: 0 1.8rem;
-    background: rgba(10, 10, 12, 0.72);
+    background: var(--topbar-bg);
     backdrop-filter: blur(16px) saturate(1.2);
     border-bottom: 1px solid var(--border);
     position: sticky; top: 0; z-index: 50;
@@ -51,6 +51,10 @@
 /* Sign-in: icon-only ghost button */
 .tb-iconbtn { padding: .48rem .68rem; }
 .tb-iconbtn .svg-icon { width: 1.2rem; height: 1.2rem; }
+
+/* Theme toggle (sun/moon) */
+.tb-theme .svg-icon { transition: transform .35s cubic-bezier(.2, .7, .2, 1); }
+.tb-theme:hover .svg-icon { transform: rotate(-25deg) scale(1.08); color: var(--ember); }
 
 @media (max-width: 980px) {
     .topbar { padding: 0 1rem; }

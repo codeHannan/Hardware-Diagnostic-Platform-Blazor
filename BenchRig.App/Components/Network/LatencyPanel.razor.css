@@ -9,7 +9,7 @@
 .lat-v small { font-size: .62rem; color: var(--text-2); margin-left: .25rem; font-weight: 600; }
 .lat-grade { position: absolute; top: .5rem; right: .6rem; font-weight: 800; font-size: .95rem; }
 .grade-a { color: var(--ok); }
-.grade-b { color: #9cc466; }
+.grade-b { color: #5E9E3E; }
 .grade-c { color: var(--warn); }
 .grade-d { color: var(--bad); }
 

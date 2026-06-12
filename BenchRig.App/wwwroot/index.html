@@ -6,8 +6,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BenchRig - Hardware &amp; Network Diagnostic Platform</title>
     <meta name="description" content="Comprehensive client-side hardware, network, and peripheral diagnostic platform." />
-    <meta name="theme-color" content="#0a0a0c" />
+    <meta name="theme-color" content="#E4DBC8" />
     <base href="/" />
+
+    <!-- Theme bootstrap: runs before first paint so there is no flash of the
+         wrong theme. Saved choice wins; first visit follows the OS setting. -->
+    <script>
+        (function () {
+            const META = { light: '#E4DBC8', dark: '#211E18' };
+            let saved = null;
+            try { saved = localStorage.getItem('benchrig-theme'); } catch { /* private mode */ }
+            const theme = (saved === 'dark' || saved === 'light') ? saved
+                : (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+            const apply = (t) => {
+                document.documentElement.setAttribute('data-theme', t);
+                const m = document.querySelector('meta[name="theme-color"]');
+                if (m) m.setAttribute('content', META[t] || META.light);
+            };
+            apply(theme);
+
+            window.BenchRigTheme = {
+                get: () => document.documentElement.getAttribute('data-theme') || 'light',
+                set: (t) => {
+                    apply(t);
+                    try { localStorage.setItem('benchrig-theme', t); } catch { /* private mode */ }
+                }
+            };
+        })();
+    </script>
 
     <link rel="preload" id="webassembly" />
 

@@ -1,7 +1,7 @@
 .sidebar {
     width: var(--sidebar-w);
     flex-shrink: 0;
-    background: linear-gradient(180deg, #0c0c0e, #080809);
+    background: linear-gradient(180deg, var(--sidebar-1), var(--sidebar-2));
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -48,9 +48,9 @@
     text-decoration: none; transition: background .14s ease, color .14s ease;
     position: relative;
 }
-::deep .nav-item:hover { background: rgba(255, 255, 255, 0.035); color: var(--cream); }
+::deep .nav-item:hover { background: var(--hover-tint); color: var(--cream); }
 ::deep .nav-item.active {
-    background: linear-gradient(90deg, var(--glow-soft), rgba(255, 90, 44, 0.02));
+    background: linear-gradient(90deg, var(--glow-soft), rgba(91, 155, 213, 0.02));
     color: var(--cream);
 }
 ::deep .nav-item.active::before {
