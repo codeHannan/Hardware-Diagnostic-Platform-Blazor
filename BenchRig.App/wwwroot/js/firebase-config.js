@@ -1,28 +1,42 @@
 // Firebase app initialization (ES module).
-// ──────────────────────────────────────────────────────────────────────────
-//  REPLACE the firebaseConfig values below with YOUR Firebase project's web config.
-//  The values here are the implementation-plan placeholder and will NOT work
-//  (auth/configuration-not-found + Firestore timeouts) until you point this at
-//  a real project. See FIREBASE_SETUP.md in the repo root for the 5-minute setup
-//  (create project → enable Email/Password auth → create Firestore → deploy rules).
-//  Get your config: Firebase console → Project settings → "Your apps" → Web app.
-//
-//  NOTE: only edit the values inside firebaseConfig. The exports below (app/auth/db)
-//  are required by the rest of the app — don't remove them.
-// ──────────────────────────────────────────────────────────────────────────
+// Public-safe defaults are placeholders only. Replace these with your Firebase
+// Web app config (identifiers, not server-side secrets) before enabling auth/data.
+// Setup docs: FIREBASE_SETUP.md
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyBtVyQ1eZLPGp1nXA45s7mtc0VH8dDYRVs",
-    authDomain: "diagnostic-platform-blazor.firebaseapp.com",
-    projectId: "diagnostic-platform-blazor",
-    storageBucket: "diagnostic-platform-blazor.firebasestorage.app",
-    messagingSenderId: "876830402780",
-    appId: "1:876830402780:web:1b15fbf39ee7d980cd2c19",
-    measurementId: "G-NGN2CF3SJZ"
+const defaults = {
+    apiKey: "YOUR_FIREBASE_WEB_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID",
+    measurementId: "YOUR_MEASUREMENT_ID"
 };
+
+const runtimeConfig =
+    globalThis.__BENCHRIG_CONFIG__?.firebase ??
+    globalThis.BenchRigConfig?.firebase ??
+    {};
+
+const firebaseConfig = {
+    ...defaults,
+    ...runtimeConfig
+};
+
+const isConfigured =
+    firebaseConfig.apiKey &&
+    firebaseConfig.projectId &&
+    firebaseConfig.appId &&
+    !firebaseConfig.apiKey.startsWith("YOUR_") &&
+    !firebaseConfig.projectId.startsWith("YOUR_") &&
+    !firebaseConfig.appId.startsWith("YOUR_");
+
+if (!isConfigured) {
+    console.warn("BenchRig Firebase config is using placeholders. Firebase-backed features remain disabled until configured. See FIREBASE_SETUP.md.");
+}
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

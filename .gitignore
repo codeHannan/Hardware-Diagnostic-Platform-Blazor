@@ -9,6 +9,21 @@
 
 # Blazor WebAssembly specific build outputs
 wwwroot/dist/
+release/
+publish/
 
 # Claude Code
 .claude/
+
+# Firebase local/deployment artifacts
+firebase-debug.log
+firebase-debug.*.log
+.firebase/
+
+# Local environment/secret files
+.env
+.env.*
+
+# Local publish profile secrets
+*.pubxml.user
+BenchRig.App/Properties/PublishProfiles/

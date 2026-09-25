@@ -298,6 +298,10 @@ Open the printed `https://localhost:<port>` URL and start benching. 🎉
 
 ## ⚙️ Configuration
 
+> 🔒 Public-release note: this repository ships with placeholder Firebase values in
+> `BenchRig.App/wwwroot/js/firebase-config.js`. See [`FIREBASE_SETUP.md`](FIREBASE_SETUP.md)
+> before enabling auth/forum/reports/helpdesk in a live deployment.
+
 <details>
 <summary><b>🔥 Firebase (auth, forum, reports, tickets)</b></summary>
 
@@ -305,7 +309,8 @@ Open the printed `https://localhost:<port>` URL and start benching. 🎉
 
 1. Create a project at the [Firebase Console](https://console.firebase.google.com/).
 2. Enable **Email/Password** authentication and **Cloud Firestore**.
-3. Drop your web-app keys into `BenchRig.App/wwwroot/firebase-config.js`.
+3. Set your Firebase **web app identifiers** in `BenchRig.App/wwwroot/js/firebase-config.js`
+   (or inject `window.__BENCHRIG_CONFIG__.firebase` before app bootstrap).
 4. Deploy the bundled, hardened security rules:
 
 ```bash
@@ -380,6 +385,9 @@ Firestore access is governed by [`firestore.rules`](firestore.rules) — defense
 - **✅ Field validation** — required fields and length limits on every write (titles, bodies, ratings, comment depth).
 - **🎫 Gated helpdesk** — ticket threads readable only by their owner or an admin; staff replies must match real role.
 - **🛑 Default-deny** — anything not explicitly permitted is rejected.
+
+For public deployment hardening guidance (Firebase setup, CI secrets, artifact cleanup, and
+pre-publication checks), see [`FIREBASE_SETUP.md`](FIREBASE_SETUP.md).
 
 ---
 
