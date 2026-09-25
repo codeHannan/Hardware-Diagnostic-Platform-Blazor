@@ -4,7 +4,7 @@
 
 # ⚙️ BenchRig
 
-### Hardware &amp; Network Diagnostic Platform — entirely in your browser
+### Hardware &amp; Network Diagnostic Platform, entirely in your browser
 
 *Bench your mouse, keyboard, audio, display, CPU and connection with zero installs.*
 *No drivers. No downloads. Open a tab, run the rig, save the report.*
@@ -17,16 +17,16 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)](#-progressive-web-app)
-[![Status](https://img.shields.io/badge/status-active-success.svg)](#)
-[![License](https://img.shields.io/badge/license-proprietary-red.svg)](#-license--usage)
+[![Status](https://img.shields.io/badge/status-archived%20showcase-inactive.svg)](#-project-status-and-usage)
+[![Usage](https://img.shields.io/badge/usage-permission%20required-red.svg)](#-project-status-and-usage)
 
 <br/>
 
-**[Diagnostics](#-diagnostic-suite) · [Features](#-platform-features) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [Deploy](#-build--deploy)**
+**[Diagnostics](#-diagnostic-suite) · [Features](#-platform-features) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [Build Output](#-build-output)**
 
 </div>
 
----
+> ⚠️ **Showcase Notice:** The original hosted instance has been retired. This repository is kept as a portfolio case study while a successor version is in development.
 
 ## 📑 Table of Contents
 
@@ -41,47 +41,41 @@
 - [Project Structure](#-project-structure)
 - [Quick Start](#-quick-start)
 - [Configuration](#-configuration)
-- [Build &amp; Deploy](#-build--deploy)
+- [Build Output](#-build-output)
 - [Progressive Web App](#-progressive-web-app)
 - [Security Model](#-security-model)
 - [Roadmap](#-roadmap)
 - [FAQ](#-faq)
 - [Author](#-author)
-- [License &amp; Usage](#-license--usage)
-
----
+- [Project Status and Usage](#-project-status-and-usage)
 
 ## ✨ Overview
 
 **BenchRig** is a full-featured diagnostic platform built entirely on **Blazor WebAssembly (.NET 10)** that runs
 100% client-side in any modern browser. It turns a browser tab into a hardware lab: probe your peripherals,
-stress-test your CPU, benchmark your connection, then save a consolidated diagnostic report to the cloud — without
+stress-test your CPU, benchmark your connection, then save a consolidated diagnostic report to the cloud, without
 installing a single driver or executable.
 
 But BenchRig is more than a test bench. It ships with a **community forum**, a curated **solutions knowledge base**,
-a **support-ticket helpdesk**, an **AI troubleshooting assistant**, **donations**, and a full **admin console** —
+a **support-ticket helpdesk**, an **AI troubleshooting assistant**, **donations**, and a full **admin console**,
 making it a complete, production-shaped web product rather than a classroom demo.
 
 <div align="center">
 
-> 🎓 Engineered as a Fourth-Semester **Visual Programming** project at **Air University (BSCS)** — built like real SaaS.
+> 🎓 Engineered as a Fourth-Semester **Visual Programming** project at **Air University (BSCS)**, built like real SaaS.
 
 </div>
-
----
 
 ## 💡 Why BenchRig?
 
 | | Traditional diagnostic tools | **BenchRig** |
 | :-- | :-- | :-- |
-| **Install** | Downloads, drivers, admin rights | ❌ None — runs in the browser |
+| **Install** | Downloads, drivers, admin rights | ❌ None, runs in the browser |
 | **Platform** | Usually Windows-only `.exe` | ✅ Any OS with a modern browser |
 | **Trust** | Opaque native binaries | ✅ Open, sandboxed web APIs |
 | **Reports** | Local files you lose | ✅ Saved to your account, anywhere |
 | **Help** | You're on your own | ✅ AI assistant + forum + helpdesk |
 | **Updates** | Re-download every release | ✅ Always the latest, instantly |
-
----
 
 ## 🧪 Diagnostic Suite
 
@@ -134,8 +128,6 @@ diagnostic logic is pure C#, fully decoupled from the browser, and unit-testable
 
 > 🧾 Every module feeds the **Report Builder**, which compiles a single, shareable diagnostic report saved to Firestore.
 
----
-
 ## 🚀 Platform Features
 
 <table>
@@ -150,8 +142,6 @@ diagnostic logic is pure C#, fully decoupled from the browser, and unit-testable
 <tr><td>💳</td><td><b>Donations</b></td><td>Stripe-powered "buy me a coffee" support flow.</td></tr>
 <tr><td>📱</td><td><b>Installable PWA</b></td><td>Offline-first service worker; installs to desktop or phone.</td></tr>
 </table>
-
----
 
 ## 🏗️ Architecture
 
@@ -180,12 +170,10 @@ BenchRig follows a **layered, dependency-injected architecture**. All browser-sp
 
 **Design principles**
 
-- 🧩 **Separation of concerns** — UI never touches `IJSRuntime` directly; it goes through a bridge.
-- 🔌 **Inversion of control** — everything is registered in [`Program.cs`](BenchRig.App/Program.cs) and injected.
-- 🧪 **Testable core** — engines are plain C# with no Blazor dependency.
-- 🗂️ **Feature-first folders** — models, components and engines are grouped by domain.
-
----
+- 🧩 **Separation of concerns:** UI never touches `IJSRuntime` directly; it goes through a bridge.
+- 🔌 **Inversion of control:** everything is registered in [`Program.cs`](BenchRig.App/Program.cs) and injected.
+- 🧪 **Testable core:** engines are plain C# with no Blazor dependency.
+- 🗂️ **Feature-first folders:** models, components and engines are grouped by domain.
 
 ## 🔄 How a Test Runs
 
@@ -208,21 +196,17 @@ User clicks "Start"
   └───────────────┘                    └────────────────────┘
 ```
 
----
-
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
 | :-- | :-- |
 | **Frontend** | Blazor WebAssembly · .NET 10 · C# · Razor Components · scoped CSS |
-| **Browser APIs** | JS Interop bridges — Web Audio, Pointer, Keyboard, Canvas, Geolocation |
+| **Browser APIs** | JS Interop bridges: Web Audio, Pointer, Keyboard, Canvas, Geolocation |
 | **Auth & Data** | Firebase Authentication · Cloud Firestore |
 | **Speed-test backend** | Cloudflare Worker (LibreSpeed-compatible + CORS proxy) |
 | **AI** | Gemini-powered chatbot assistant |
 | **Maps & Payments** | Leaflet · Stripe |
-| **Delivery** | Progressive Web App · offline-first service worker · Firebase Hosting |
-
----
+| **Delivery** | Progressive Web App · offline-first service worker |
 
 ## 🧭 Application Routes
 
@@ -238,8 +222,6 @@ User clicks "Start"
 | `/donate` | Stripe donation flow | Public |
 | `/login` · `/register` · `/account` | Authentication & profile | Public / Auth |
 | `/admin` · `/admin/tickets` · `/admin/solutions` | Admin console | **Admin only** |
-
----
 
 ## 📂 Project Structure
 
@@ -260,12 +242,10 @@ BenchRig/
 │   ├── Components/              # Reusable UI, grouped by feature
 │   ├── Program.cs               # DI registration & app bootstrap
 │   └── wwwroot/                 # JS interop, CSS, icons, manifest, service worker
-├── cloudflare-worker/           # Free, CORS-enabled speed-test backend
+├── cloudflare-worker/           # CORS-enabled speed-test backend
 ├── firestore.rules              # Hardened, role-based Firestore security rules
 └── firebase.json                # Hosting config (SPA rewrites + cache headers)
 ```
-
----
 
 ## 🚦 Quick Start
 
@@ -273,8 +253,8 @@ BenchRig/
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - A modern browser (Chrome, Edge, Firefox)
-- *(Optional)* A [Firebase](https://firebase.google.com/) project — auth, forum, reports, tickets
-- *(Optional)* A [Cloudflare](https://workers.cloudflare.com/) account — your own speed-test server
+- *(Optional)* A [Firebase](https://firebase.google.com/) project, for auth, forum, reports, and tickets
+- *(Optional)* A [Cloudflare](https://workers.cloudflare.com/) account, for your own speed-test server
 
 ### Run locally
 
@@ -289,12 +269,10 @@ dotnet restore
 dotnet run
 ```
 
-Open the printed `https://localhost:<port>` URL and start benching. 🎉
+Open the printed `https://localhost:<port>` URL to run the app locally.
 
 > 💡 The diagnostics work standalone. Firebase and the Cloudflare Worker are only needed for accounts,
 > cloud reports, forum/helpdesk, and self-hosted speed tests.
-
----
 
 ## ⚙️ Configuration
 
@@ -320,7 +298,7 @@ firebase deploy --only firestore:rules
 <br/>
 
 Browsers can only run speed tests against servers that send `Access-Control-Allow-Origin: *`. The included
-Worker provides exactly that — a free, CORS-enabled backend you control (and it can proxy other LibreSpeed
+Worker provides exactly that, a CORS-enabled backend you control (and it can proxy other LibreSpeed
 servers for location-specific tests).
 
 ```bash
@@ -335,9 +313,7 @@ Full guide: [`cloudflare-worker/README.md`](cloudflare-worker/README.md).
 
 </details>
 
----
-
-## 📦 Build & Deploy
+## 📦 Build Output
 
 Produce an optimized static build:
 
@@ -346,18 +322,11 @@ cd BenchRig.App
 dotnet publish -c Release -o release
 ```
 
-The output in `release/wwwroot` is a plain static site — deployable to **Firebase Hosting**,
-**Cloudflare Pages**, **GitHub Pages**, **Netlify**, or any static host:
-
-```bash
-# Firebase Hosting (config already points to release/wwwroot)
-firebase deploy --only hosting
-```
+The output in `release/wwwroot` is a plain static site. This repository is currently maintained as a showcase,
+and no official public deployment for this version is active.
 
 [`firebase.json`](firebase.json) is preconfigured with SPA rewrites and cache headers tuned for the
 Blazor `_framework` and service worker.
-
----
 
 ## 📱 Progressive Web App
 
@@ -369,19 +338,15 @@ BenchRig is a fully installable **PWA**:
 
 Look for the **install** icon in your browser's address bar.
 
----
-
 ## 🔐 Security Model
 
-Firestore access is governed by [`firestore.rules`](firestore.rules) — defense in depth, enforced server-side:
+Firestore access is governed by [`firestore.rules`](firestore.rules), with defense in depth enforced server-side:
 
-- **🧑‍⚖️ Role-based access control** — `user` vs `admin`; roles can't be self-escalated.
-- **🔑 Ownership checks** — users may only mutate their own posts, comments, tickets and reports.
-- **✅ Field validation** — required fields and length limits on every write (titles, bodies, ratings, comment depth).
-- **🎫 Gated helpdesk** — ticket threads readable only by their owner or an admin; staff replies must match real role.
-- **🛑 Default-deny** — anything not explicitly permitted is rejected.
-
----
+- **🧑‍⚖️ Role-based access control:** `user` vs `admin`; roles can't be self-escalated.
+- **🔑 Ownership checks:** users may only mutate their own posts, comments, tickets and reports.
+- **✅ Field validation:** required fields and length limits on every write (titles, bodies, ratings, comment depth).
+- **🎫 Gated helpdesk:** ticket threads readable only by their owner or an admin; staff replies must match real role.
+- **🛑 Default-deny:** anything not explicitly permitted is rejected.
 
 ## 🗺️ Roadmap
 
@@ -391,14 +356,12 @@ Firestore access is governed by [`firestore.rules`](firestore.rules) — defense
 - [ ] 🌐 Multi-language UI
 - [ ] 🏷️ Shareable public report links
 
----
-
 ## ❓ FAQ
 
 <details>
 <summary><b>Do I need to install anything to use BenchRig?</b></summary>
 <br/>
-No. It runs entirely in the browser on Blazor WebAssembly — no drivers, no executables. You can optionally
+No. It runs entirely in the browser on Blazor WebAssembly, with no drivers and no executables. You can optionally
 install it as a PWA for offline use.
 </details>
 
@@ -412,7 +375,7 @@ the Cloudflare Worker is only needed if you want your own speed-test server.
 <details>
 <summary><b>Is my hardware data sent anywhere?</b></summary>
 <br/>
-Tests run locally in your browser. Results are only persisted to Firestore — under your own account — when you
+Tests run locally in your browser. Results are only persisted to Firestore, under your own account, when you
 choose to save a report.
 </details>
 
@@ -423,40 +386,23 @@ Any modern browser with WebAssembly and the relevant web APIs (Chrome, Edge, Fir
 Web Audio / Pointer / Geolocation permissions.
 </details>
 
----
-
 ## 👤 Author
 
 <div align="center">
 
 **Abdul Hannan Qureshi**
-BSCS — Air University · *Visual Programming*
+BSCS, Air University · *Visual Programming*
 
 [![GitHub](https://img.shields.io/badge/GitHub-codeHannan-181717?logo=github&logoColor=white)](https://github.com/codeHannan)
 
 </div>
 
----
+## 📄 Project Status and Usage
 
-## 📄 License & Usage
-
-> ⚠️ **This project is NOT free to use.**
+This repository is retained as a portfolio and technical reference for the completed BenchRig project.
+The original hosted instance has been retired, and this version is not currently deployed.
 
 **© 2026 Abdul Hannan Qureshi. All Rights Reserved.**
 
-This software and its source code are proprietary. No part of this repository may be copied, reproduced,
-modified, distributed, published, sublicensed, or used — in whole or in part, for personal, academic, or
-commercial purposes — without the **prior, explicit, written permission** of the author.
-
-Viewing the source for reference is permitted; using or redistributing it is not. For licensing or usage
-requests, contact the author.
-
-<div align="center">
-
-<br/>
-
-**⭐ If BenchRig impressed you, drop a star — it means a lot.**
-
-*Built with 💜, C#, and Blazor WebAssembly.*
-
-</div>
+The source code remains copyright protected. Reuse, redistribution, modification, or commercial use
+requires prior written permission from the author.
