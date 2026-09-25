@@ -12,3 +12,17 @@ wwwroot/dist/
 
 # Claude Code
 .claude/
+
+# Firebase and deployment artifacts
+firebase-debug*.log
+.firebase/
+release/
+publish/
+
+# Local env/secret carriers
+.env
+.env.*
+
+# Publish profile user secrets/artifacts
+*.pubxml.user
+*.publishsettings

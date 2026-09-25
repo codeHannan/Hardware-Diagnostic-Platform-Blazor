@@ -15,13 +15,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBtVyQ1eZLPGp1nXA45s7mtc0VH8dDYRVs",
-    authDomain: "diagnostic-platform-blazor.firebaseapp.com",
-    projectId: "diagnostic-platform-blazor",
-    storageBucket: "diagnostic-platform-blazor.firebasestorage.app",
-    messagingSenderId: "876830402780",
-    appId: "1:876830402780:web:1b15fbf39ee7d980cd2c19",
-    measurementId: "G-NGN2CF3SJZ"
+    apiKey: "REPLACE_WITH_FIREBASE_API_KEY",
+    authDomain: "REPLACE_WITH_FIREBASE_AUTH_DOMAIN",
+    projectId: "REPLACE_WITH_FIREBASE_PROJECT_ID",
+    storageBucket: "REPLACE_WITH_FIREBASE_STORAGE_BUCKET",
+    messagingSenderId: "REPLACE_WITH_FIREBASE_MESSAGING_SENDER_ID",
+    appId: "REPLACE_WITH_FIREBASE_APP_ID",
+    measurementId: "REPLACE_WITH_FIREBASE_MEASUREMENT_ID"
 };
 
 export const app = initializeApp(firebaseConfig);
