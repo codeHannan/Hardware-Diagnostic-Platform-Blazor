@@ -1,0 +1,78 @@
+<div class="card">
+    <div class="panel-head">
+        <h3>Special Key Verification</h3>
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+    </div>
+
+    <div class="kbd-focusbar @(_focused ? "active" : "")">
+        <span><span class="kbd-dot"></span> @(_focused ? "Press each special key to verify it" : "Click below, then press special keys")</span>
+        <span class="muted">@_seen.Count verified</span>
+    </div>
+
+    <div class="kbd-capture" tabindex="0" @ref="_el"
+         @onkeydown="OnDown" @onkeyup="OnUp" @onkeydown:preventDefault="true"
+         @onfocus="() => _focused = true" @onblur="() => _focused = false" @onclick="Focus">
+        @foreach (var group in _groups)
+        {
+            <div class="sk-group">
+                <div class="sk-title">@group.Title</div>
+                <div class="sk-keys">
+                    @foreach (var k in group.Keys)
+                    {
+                        <span class="sk-chip @(_seen.Contains(k.Code) ? "done" : "") @(_lastCode == k.Code ? "active" : "")">
+                            @(_seen.Contains(k.Code) ? "✓ " : "")@k.Label
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+    <p class="muted" style="margin-top:.8rem">Each key turns green once detected. Dedicated media keys (volume/play) are often handled by the OS and never reach the browser, so they may not register here.</p>
+</div>
+
+@code {
+    private ElementReference _el;
+    private bool _focused, _autofocused;
+    private string _lastCode = "";
+    private readonly HashSet<string> _seen = new();
+
+    private record Group(string Title, KeyCap[] Keys);
+
+    private readonly Group[] _groups =
+    [
+        new("Modifiers", [
+            new("ShiftLeft","L-Shift"), new("ShiftRight","R-Shift"), new("ControlLeft","L-Ctrl"), new("ControlRight","R-Ctrl"),
+            new("AltLeft","L-Alt"), new("AltRight","R-Alt"), new("MetaLeft","L-Win"), new("MetaRight","R-Win"),
+            new("CapsLock","Caps"), new("ContextMenu","Menu"),
+        ]),
+        new("Function row", [
+            new("Escape","Esc"), new("F1","F1"), new("F2","F2"), new("F3","F3"), new("F4","F4"), new("F5","F5"),
+            new("F6","F6"), new("F7","F7"), new("F8","F8"), new("F9","F9"), new("F10","F10"), new("F11","F11"), new("F12","F12"),
+        ]),
+        new("Navigation", [
+            new("Insert","Insert"), new("Home","Home"), new("PageUp","PgUp"), new("Delete","Delete"), new("End","End"),
+            new("PageDown","PgDn"), new("ArrowUp","↑"), new("ArrowDown","↓"), new("ArrowLeft","←"), new("ArrowRight","→"),
+            new("PrintScreen","PrtSc"), new("ScrollLock","ScrLk"), new("Pause","Pause"),
+        ]),
+        new("Numpad", [
+            new("NumLock","NumLk"), new("Numpad0","0"), new("Numpad1","1"), new("Numpad2","2"), new("Numpad3","3"),
+            new("Numpad4","4"), new("Numpad5","5"), new("Numpad6","6"), new("Numpad7","7"), new("Numpad8","8"),
+            new("Numpad9","9"), new("NumpadDecimal","."), new("NumpadAdd","+"), new("NumpadSubtract","-"),
+            new("NumpadMultiply","*"), new("NumpadDivide","/"), new("NumpadEnter","Enter"),
+        ]),
+    ];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    { if (firstRender && !_autofocused) { _autofocused = true; try { await _el.FocusAsync(); } catch { } } }
+    private async Task Focus() { try { await _el.FocusAsync(); } catch { } }
+
+    private void OnDown(KeyboardEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.Code)) return;
+        _lastCode = e.Code;
+        _seen.Add(e.Code);
+    }
+
+    private void OnUp(KeyboardEventArgs e) { if (_lastCode == e.Code) _lastCode = ""; }
+    private void Reset() { _seen.Clear(); _lastCode = ""; }
+}

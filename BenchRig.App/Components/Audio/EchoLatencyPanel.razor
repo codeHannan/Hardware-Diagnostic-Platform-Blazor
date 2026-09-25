@@ -1,0 +1,79 @@
+@inject AudioTestOrchestrator Orch
+@inject AudioDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head"><h3>Echo &amp; Latency</h3></div>
+    <p class="muted">
+        <b>System latency</b> is the audio pipeline delay your browser reports. <b>Echo round-trip</b> plays a click
+        through your speakers and times how long until your microphone hears it, so it needs speakers (not headphones) and mic permission.
+    </p>
+
+    <div class="result-grid">
+        <MetricCard Label="System latency" Value="@(_systemLatency >= 0 ? _systemLatency.ToString("0.0") : "N/A")" Unit="ms" />
+        <MetricCard Label="Echo round-trip" Value="@(State.Echo is { RoundTripMs: > 0 } e ? e.RoundTripMs.ToString("0") : "N/A")" Unit="ms" />
+        <MetricCard Label="Confidence" Value="@(State.Echo is { } c && c.RoundTripMs > 0 ? (c.Confidence * 100).ToString("0") + "%" : "N/A")" />
+    </div>
+
+    <div class="test-toolbar" style="margin-top:1rem">
+        <button class="btn btn-primary" @onclick="MeasureSystem">Measure system latency</button>
+        <button class="btn" disabled="@_busy" @onclick="MeasureEcho">@(_busy ? "Listening…" : "Measure echo round-trip")</button>
+    </div>
+
+    @if (_message is not null)
+    {
+        <p class="@(_messageBad ? "validation-message" : "muted")" style="margin-top:.8rem">@_message</p>
+    }
+</div>
+
+@code {
+    private double _systemLatency = -1;
+    private bool _busy;
+    private string? _message;
+    private bool _messageBad;
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+
+    private async Task MeasureSystem()
+    {
+        try { _systemLatency = await Orch.GetSystemLatencyAsync(); _message = null; }
+        catch { _message = "Could not read system latency."; _messageBad = true; }
+    }
+
+    private async Task MeasureEcho()
+    {
+        _busy = true; _message = null;
+        try
+        {
+            if (State.MicState?.IsCapturing != true)
+            {
+                if (!await Orch.StartMicAsync())
+                {
+                    _message = "Microphone permission is required for the echo test.";
+                    _messageBad = true;
+                    return;
+                }
+                await Task.Delay(200);
+            }
+            await Orch.MeasureEchoAsync();
+            if (State.Echo is { RoundTripMs: > 0 })
+            {
+                _message = "Click detected via the microphone.";
+                _messageBad = false;
+            }
+            else
+            {
+                _message = "No echo detected. Make sure sound plays through speakers (not headphones) and the mic can hear them.";
+                _messageBad = true;
+            }
+        }
+        catch { _message = "Echo measurement failed."; _messageBad = true; }
+        finally { _busy = false; }
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+        if (State.MicState?.IsCapturing == true) { try { _ = Orch.StopMicAsync(); } catch { } }
+    }
+}

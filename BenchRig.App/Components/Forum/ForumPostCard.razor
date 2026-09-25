@@ -1,0 +1,38 @@
+<a class="post-card" href="@AppRoutes.ForumPostFor(Post.Id)">
+    <div class="pc-head">
+        <h3>@Post.Title</h3>
+        @if (Post.RatingCount > 0)
+        {
+            <span class="pc-rating" title="@Post.RatingCount rating@(Post.RatingCount == 1 ? "" : "s")">★ @Post.AvgRating.ToString("0.0")</span>
+        }
+        else
+        {
+            <span class="pc-rating muted" title="No ratings yet">★ –</span>
+        }
+    </div>
+    <p class="pc-body">@Truncate(Post.Body)</p>
+    @if (Post.Tags.Count > 0)
+    {
+        <div class="pc-tags">
+            @foreach (var t in Post.Tags) { <span class="badge">#@t</span> }
+        </div>
+    }
+    <div class="pc-meta">
+        <span class="pc-author">@Post.AuthorName</span>
+        <span class="muted pc-stats">
+            💬 @Post.CommentCount · @TimeAgo.From(Post.CreatedAt)@(IsEdited ? " · edited" : "")
+        </span>
+    </div>
+</a>
+
+@code {
+    [Parameter, EditorRequired] public ForumPost Post { get; set; } = default!;
+
+    private bool IsEdited => Post.UpdatedAt > Post.CreatedAt.AddMinutes(1);
+
+    private static string Truncate(string s)
+    {
+        var t = s.Replace("#", "").Replace("*", "").Replace("`", "").Replace("\n", " ").Trim();
+        return t.Length > 160 ? t[..160] + "…" : t;
+    }
+}

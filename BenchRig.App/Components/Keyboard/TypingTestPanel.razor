@@ -1,0 +1,149 @@
+@inject KeyboardTestOrchestrator Orch
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Typing Speed Test</h3>
+        <div class="test-toolbar">
+            <span class="badge">@_remaining s</span>
+            <button class="btn btn-ghost" @onclick="Restart">New text</button>
+        </div>
+    </div>
+    <p class="muted">Type the passage below. The 60-second clock starts on your first keystroke.</p>
+
+    <div class="typing-passage">
+        @for (int i = 0; i < _target.Length; i++)
+        {
+            <span class="@CharClass(i)">@_target[i]</span>
+        }
+    </div>
+
+    <textarea class="textarea typing-input" @ref="_input" value="@_typed" @oninput="OnInput"
+              disabled="@_done" placeholder="Start typing here…" spellcheck="false" autocomplete="off"></textarea>
+
+    <div class="result-grid">
+        <MetricCard Label="WPM" Value="@_wpm.ToString("0")" />
+        <MetricCard Label="Raw WPM" Value="@_rawWpm.ToString("0")" />
+        <MetricCard Label="Accuracy" Value="@_accuracy.ToString("0")" Unit="%" />
+        <MetricCard Label="Errors" Value="@_errors.ToString()" />
+    </div>
+    @if (_done)
+    {
+        <div class="badge badge-ok ttoast">Finished — @_wpm.ToString("0") WPM at @_accuracy.ToString("0")% accuracy</div>
+    }
+</div>
+
+@code {
+    private ElementReference _input;
+    private string _target = "";
+    private string _typed = "";
+    private bool _started, _done;
+    private DateTime _start;
+    private double _remaining = 60;
+    private double _wpm, _rawWpm, _accuracy;
+    private int _errors;
+    private System.Threading.Timer? _timer;
+
+    // Pool of complete, grammatical sentences. Each run shuffles and stitches a few of
+    // them together, so the passage always reads logically yet is different every time.
+    private static readonly string[] Sentences =
+    [
+        "The quick brown fox jumps over the lazy dog while the morning sun climbs slowly.",
+        "A reliable keyboard registers every press the instant it happens, with no missed strokes.",
+        "Good typists rest their fingers on the home row and let each word flow naturally.",
+        "Practice a little every day and your speed will climb without you even noticing it.",
+        "Clean mechanical switches feel crisp, and they never chatter or fire twice on their own.",
+        "Accuracy matters far more than raw speed when you are still learning to type well.",
+        "A steady, even rhythm beats short bursts, so relax your hands and breathe between words.",
+        "Most people read faster than they type, but that gap closes with patient daily practice.",
+        "Low latency, smooth scrolling, and a quiet click make any desk feel genuinely premium.",
+        "Try to watch the screen instead of your hands as your confidence slowly grows.",
+        "Small consistent gains add up, turning a clumsy beginner into a calm and fluent typist.",
+        "When the words appear in front of you, trust your fingers and keep moving forward.",
+        "A bright room, a clear monitor, and a tidy desk help you focus on the task ahead.",
+        "Warm up with a few slow lines first, then settle into a comfortable, repeatable pace.",
+        "The best results come from good posture, light keystrokes, and an unhurried state of mind.",
+        "Every expert was once a beginner who simply refused to quit after the first mistake.",
+    ];
+
+    protected override void OnInitialized() => _target = Generate();
+
+    private static string Generate()
+    {
+        var rng = new Random();
+        var order = Sentences.OrderBy(_ => rng.Next()).ToList();
+        var sb = new System.Text.StringBuilder();
+        int words = 0;
+        foreach (var s in order)
+        {
+            if (sb.Length > 0) sb.Append(' ');
+            sb.Append(s);
+            words += s.Count(c => c == ' ') + 1;
+            if (words >= 55) break;   // ~55–70 logical words per passage
+        }
+        return sb.ToString();
+    }
+
+    private string CharClass(int i)
+    {
+        if (i >= _typed.Length) return i == _typed.Length ? "tc-cursor" : "tc-pending";
+        return _typed[i] == _target[i] ? "tc-correct" : "tc-wrong";
+    }
+
+    private void OnInput(ChangeEventArgs e)
+    {
+        if (_done) return;
+        _typed = e.Value?.ToString() ?? "";
+        if (!_started)
+        {
+            _started = true;
+            _start = DateTime.UtcNow;
+            _timer = new System.Threading.Timer(_ => Tick(), null, 200, 200);
+        }
+        Recompute();
+        if (_typed.Length >= _target.Length) Finish();
+    }
+
+    private void Tick()
+    {
+        _remaining = Math.Max(0, 60 - (DateTime.UtcNow - _start).TotalSeconds);
+        Recompute();
+        if (_remaining <= 0) Finish();
+        else InvokeAsync(StateHasChanged);
+    }
+
+    private void Recompute()
+    {
+        int n = Math.Min(_typed.Length, _target.Length);
+        int correct = 0;
+        for (int i = 0; i < n; i++) if (_typed[i] == _target[i]) correct++;
+        _errors = _typed.Length - correct;
+        double elapsed = _started ? Math.Max(0.001, Math.Min(60, (DateTime.UtcNow - _start).TotalSeconds)) : 0.001;
+        double minutes = elapsed / 60.0;
+        _wpm = correct / 5.0 / minutes;
+        _rawWpm = _typed.Length / 5.0 / minutes;
+        _accuracy = _typed.Length > 0 ? correct * 100.0 / _typed.Length : 0;
+    }
+
+    private void Finish()
+    {
+        if (_done) return;
+        _timer?.Dispose(); _timer = null;
+        _done = true;
+        int n = Math.Min(_typed.Length, _target.Length);
+        int correct = 0; for (int i = 0; i < n; i++) if (_typed[i] == _target[i]) correct++;
+        double dur = Math.Min(60, Math.Max(1, (DateTime.UtcNow - _start).TotalSeconds));
+        var r = Orch.ComputeTyping(correct, _typed.Length, dur);
+        _wpm = r.Wpm; _rawWpm = r.RawWpm; _accuracy = r.AccuracyPercent;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Restart()
+    {
+        _timer?.Dispose(); _timer = null;
+        _target = Generate(); _typed = ""; _started = false; _done = false;
+        _remaining = 60; _wpm = _rawWpm = _accuracy = 0; _errors = 0;
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

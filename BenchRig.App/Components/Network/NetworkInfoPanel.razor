@@ -1,0 +1,72 @@
+@inject NetworkDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Network Details</h3>
+    </div>
+
+    @if (State.NetworkInfo is { } info)
+    {
+        <div class="nd-group">Identity</div>
+        <dl class="kvs">
+            <dt>IP Address</dt><dd>@Dash(info.PublicIp)</dd>
+            @if (!string.IsNullOrWhiteSpace(info.Hostname)) { <dt>Hostname</dt><dd>@info.Hostname</dd> }
+            <dt>ISP</dt><dd>@Dash(info.Isp)</dd>
+            <dt>Organization</dt><dd>@Dash(info.Org)</dd>
+            @if (info.Asn > 0) { <dt>ASN</dt><dd>AS@(info.Asn)</dd> }
+        </dl>
+
+        <div class="nd-group">Connection</div>
+        <dl class="kvs">
+            <dt>Type</dt><dd>@Dash(info.ConnType.ToUpperInvariant())</dd>
+            <dt>Est. downlink</dt><dd>@(info.Downlink > 0 ? $"{info.Downlink:0.#} Mbps" : "N/A")</dd>
+            <dt>Est. RTT</dt><dd>@(info.Rtt > 0 ? $"{info.Rtt:0} ms" : "N/A")</dd>
+            <dt>HTTP protocol</dt><dd>@Dash(info.HttpProtocol)</dd>
+            <dt>DNS over HTTPS</dt><dd>@(info.DohCloudflare ? "Cloudflare reachable" : "N/A")</dd>
+            <dt>Data saver</dt><dd>@(info.SaveData ? "On" : "Off")</dd>
+            @if (!string.IsNullOrEmpty(info.Colo)) { <dt>Cloudflare edge</dt><dd>@info.Colo</dd> }
+        </dl>
+
+        <div class="nd-group">
+            Location
+            <span class="badge @(info.IsPrecise ? "badge-ok" : "")">@(info.IsPrecise ? "precise" : "IP-based")</span>
+        </div>
+        <dl class="kvs">
+            <dt>City</dt><dd>@Dash(info.City)</dd>
+            <dt>Region</dt><dd>@Dash(info.Region)</dd>
+            <dt>Country</dt><dd>@Dash(info.Country)@(string.IsNullOrEmpty(info.CountryCode) ? "" : $" ({info.CountryCode})")</dd>
+            @if (!string.IsNullOrWhiteSpace(info.Continent)) { <dt>Continent</dt><dd>@info.Continent</dd> }
+            @if (!string.IsNullOrWhiteSpace(info.Postal)) { <dt>Postal</dt><dd>@info.Postal</dd> }
+            <dt>Coordinates</dt><dd>@(info.HasLocation ? $"{info.Latitude:0.0000}, {info.Longitude:0.0000}" : "N/A")</dd>
+            @if (info.AccuracyKm > 0 && !info.IsPrecise) { <dt>Accuracy</dt><dd>± @(info.AccuracyKm) km</dd> }
+            <dt>Timezone</dt><dd>@Dash(info.Timezone)@(string.IsNullOrEmpty(info.UtcOffset) ? "" : $" ({info.UtcOffset})")</dd>
+            @if (!string.IsNullOrWhiteSpace(info.LocalTime)) { <dt>Local time</dt><dd>@info.LocalTime</dd> }
+        </dl>
+
+        <div class="nd-group">Device &amp; Browser</div>
+        <dl class="kvs">
+            <dt>Browser</dt><dd>@Dash(info.Browser)</dd>
+            <dt>Operating system</dt><dd>@Dash(info.Os)</dd>
+            <dt>Languages</dt><dd>@Dash(info.Languages)</dd>
+            @if (info.Cores > 0) { <dt>CPU threads</dt><dd>@info.Cores</dd> }
+            @if (info.Memory > 0) { <dt>Device memory</dt><dd>@(info.Memory) GB</dd> }
+            <dt>Screen</dt><dd>@Dash(info.Screen)</dd>
+            <dt>Touch points</dt><dd>@info.TouchPoints</dd>
+            <dt>Cookies</dt><dd>@(info.CookiesEnabled ? "Enabled" : "Disabled")</dd>
+            <dt>Status</dt><dd>@(info.Online ? "Online" : "Offline")</dd>
+        </dl>
+
+    }
+    else
+    {
+        <LoadingSpinner Text="Detecting your connection…" />
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private static string Dash(string s) => string.IsNullOrWhiteSpace(s) ? "N/A" : s;
+}

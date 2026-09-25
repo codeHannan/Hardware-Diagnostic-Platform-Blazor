@@ -1,0 +1,114 @@
+@inject IJSRuntime Js
+@inject MouseDiagState State
+@implements IAsyncDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>DPI Check</h3>
+        <div class="test-toolbar">
+            <label style="margin:0">Distance</label>
+            <input class="input" style="width:80px" type="number" min="1" step="0.5" @bind="_distanceCm" />
+            <span class="muted">cm</span>
+        </div>
+    </div>
+    <p class="muted">
+        Place a ruler under your mouse. Click inside the box to begin (the cursor hides), slide the mouse
+        <b>horizontally</b> exactly the distance set above, then click again or press Esc. Turn off mouse
+        acceleration ("enhance pointer precision") for an accurate reading.
+    </p>
+
+    <div id="dpi-stage" class="dpi-stage">
+        <div class="dpi-readout">
+            @if (_capturing)
+            {
+                <div class="pad-big">@_counts.ToString("0")</div>
+                <div class="pad-sub">counts measured · slide @_distanceCm cm, then click</div>
+            }
+            else if (_dpi > 0)
+            {
+                <div class="pad-big">@_dpi.ToString("0")</div>
+                <div class="pad-sub">estimated DPI over @_counts.ToString("0") counts</div>
+            }
+            else
+            {
+                <div class="pad-hint">Click here, slide horizontally @_distanceCm cm, then click again.</div>
+            }
+        </div>
+    </div>
+
+    @if (_dpi > 0 && !_capturing)
+    {
+        <div class="result-grid">
+            <MetricCard Label="Estimated DPI" Value="@_dpi.ToString("0")" />
+            <MetricCard Label="Counts measured" Value="@_counts.ToString("0")" />
+            <MetricCard Label="Nearest preset" Value="@Nearest(_dpi).ToString()" Unit="DPI" />
+        </div>
+    }
+</div>
+
+@code {
+    private double _distanceCm = 5;
+    private double _counts;
+    private double _dpi;
+    private bool _capturing;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<DpiCheckPanel>? _ref;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./js/mouse-interop.js");
+            _ref = DotNetObjectReference.Create(this);
+            await _module.InvokeVoidAsync("dpiInit", "dpi-stage", _ref);
+        }
+        catch { /* pointer lock unavailable */ }
+    }
+
+    [JSInvokable]
+    public void OnDpiMove(double total)
+    {
+        if (!_capturing) return;
+        _counts = total;
+        InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnDpiLock(bool locked, double total)
+    {
+        if (locked)
+        {
+            _capturing = true; _counts = 0; _dpi = 0;
+        }
+        else if (_capturing)
+        {
+            _capturing = false;
+            _counts = total;
+            double inches = _distanceCm / 2.54;
+            _dpi = inches > 0 ? _counts / inches : 0;
+            State.SetDpi(new DpiEstimate { EstimatedDpi = _dpi, DistancePx = _counts });
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private static int Nearest(double dpi)
+    {
+        int[] presets = [400, 800, 1200, 1600, 2400, 3200, 6400];
+        return presets.OrderBy(p => Math.Abs(p - dpi)).First();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.InvokeVoidAsync("dpiDispose");
+                await _module.DisposeAsync();
+            }
+        }
+        catch { /* ignore */ }
+        _ref?.Dispose();
+    }
+}

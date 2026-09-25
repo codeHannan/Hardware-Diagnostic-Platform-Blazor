@@ -1,0 +1,23 @@
+.dd-stage {
+    position: relative; overflow: hidden;
+    border: 1px dashed var(--border); border-radius: var(--r-md); background: var(--bg-0);
+    height: 300px; user-select: none; touch-action: none;
+}
+.dd-handle {
+    position: absolute; width: 56px; height: 56px; margin: -28px 0 0 -28px;
+    display: grid; place-items: center; font-size: 1.4rem; color: var(--text-on-accent);
+    background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+    border-radius: 12px; cursor: grab; box-shadow: var(--shadow-card); z-index: 3;
+    transition: box-shadow .1s ease;
+}
+.dd-handle.dragging { cursor: grabbing; box-shadow: 0 0 18px var(--glow); pointer-events: none; }
+.dd-target {
+    position: absolute; width: 88px; height: 88px; margin: -44px 0 0 -44px;
+    border: 2px dashed var(--accent); border-radius: 50%; display: grid; place-items: center;
+    color: var(--text-2); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+    pointer-events: none;   /* drop zone only — never intercept the drag's pointer coordinates */
+}
+.dd-target.hit { background: rgba(111,191,115,.16); border-color: var(--ok); border-style: solid; color: var(--ok); }
+.dd-flash { position: absolute; bottom: .8rem; left: 50%; transform: translateX(-50%); font-weight: 700; font-size: .9rem; }
+.dd-flash.ok { color: var(--ok); }
+.dd-flash.bad { color: var(--bad); }

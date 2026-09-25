@@ -1,0 +1,63 @@
+@* Clean 270-degree arc gauge. No needle (smoother); the arc fills and a glowing tip tracks progress. *@
+<div class="speed-gauge">
+    <svg viewBox="0 0 240 240" preserveAspectRatio="xMidYMid meet">
+        <defs>
+            <linearGradient id="sgGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="var(--ember-deep)" />
+                <stop offset="55%" stop-color="var(--ember)" />
+                <stop offset="100%" stop-color="var(--ember-2)" />
+            </linearGradient>
+        </defs>
+        <path d="@_trackPath" class="sg-track" />
+        <path d="@_trackPath" class="sg-fill" stroke-dasharray="@_arcLen" stroke-dashoffset="@Offset" />
+        <circle cx="@TipX" cy="@TipY" r="6" class="sg-tip" />
+    </svg>
+    <div class="sg-readout">
+        @if (!string.IsNullOrEmpty(Caption))
+        {
+            <div class="sg-caption">@Caption</div>
+        }
+        <div class="sg-value mono">@Value.ToString("0.0")</div>
+        <div class="sg-unit">@Unit</div>
+        @if (Max > 0)
+        {
+            <div class="sg-scale">0 to @Max.ToString("0") @Unit</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public double Value { get; set; }
+    [Parameter] public double Max { get; set; } = 100;
+    [Parameter] public string Unit { get; set; } = "Mbps";
+    [Parameter] public string? Caption { get; set; }
+
+    private const double StartDeg = 135;
+    private const double SweepDeg = 270;
+    private const double R = 100;
+    private const double Cx = 120, Cy = 120;
+
+    private string _trackPath = "";
+    private double _arcLen;
+
+    protected override void OnInitialized()
+    {
+        var (sx, sy) = Polar(StartDeg);
+        var (ex, ey) = Polar(StartDeg + SweepDeg);
+        _trackPath = $"M {F(sx)} {F(sy)} A {R} {R} 0 1 1 {F(ex)} {F(ey)}";
+        _arcLen = Math.PI * R * (SweepDeg / 180.0);
+    }
+
+    private double Fraction => Math.Clamp(Max <= 0 ? 0 : Value / Max, 0, 1);
+    private double Offset => _arcLen * (1 - Fraction);
+    private double TipX => Polar(StartDeg + SweepDeg * Fraction).x;
+    private double TipY => Polar(StartDeg + SweepDeg * Fraction).y;
+
+    private (double x, double y) Polar(double deg)
+    {
+        double rad = deg * Math.PI / 180.0;
+        return (Cx + R * Math.Cos(rad), Cy + R * Math.Sin(rad));
+    }
+
+    private static string F(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}

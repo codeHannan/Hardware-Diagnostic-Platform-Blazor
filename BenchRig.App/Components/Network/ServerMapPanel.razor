@@ -1,0 +1,57 @@
+@inject IJsLeafletBridge Leaflet
+@inject NetworkDiagState State
+@implements IAsyncDisposable
+
+<div class="card">
+    <div class="panel-head"><h3>Your Location</h3></div>
+    <div id="server-map" class="server-map"></div>
+    @if (State.NetworkInfo is { HasLocation: true } info)
+    {
+        <p class="muted" style="margin-top:.7rem">
+            @info.City@(string.IsNullOrEmpty(info.City) ? "" : ", ")@info.Country ·
+            @info.Latitude.ToString("0.0000"), @info.Longitude.ToString("0.0000")
+            @(info.IsPrecise ? " (precise)" : " (approx.)")
+        </p>
+    }
+</div>
+
+@code {
+    private bool _mapAvailable;
+    private double _lat = double.NaN, _lng = double.NaN;
+
+    protected override void OnInitialized() => State.OnChange += OnStateChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await Leaflet.InitMapAsync("server-map", 20, 0, 2); _mapAvailable = true; }
+            catch { _mapAvailable = false; }
+            await Plot();
+        }
+    }
+
+    private void OnStateChanged() => InvokeAsync(async () => { await Plot(); StateHasChanged(); });
+
+    private async Task Plot()
+    {
+        if (!_mapAvailable) return;
+        if (State.NetworkInfo is not { HasLocation: true } info) return;
+        // Only re-plot when the coordinates actually change (avoids marker pile-up).
+        if (info.Latitude == _lat && info.Longitude == _lng) return;
+        _lat = info.Latitude; _lng = info.Longitude;
+        try
+        {
+            // Re-init recenters the view and clears previous markers.
+            await Leaflet.InitMapAsync("server-map", info.Latitude, info.Longitude, info.IsPrecise ? 11 : 6);
+            await Leaflet.PlotUserLocationAsync(info.Latitude, info.Longitude);
+        }
+        catch { /* map best-effort */ }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        State.OnChange -= OnStateChanged;
+        try { await Leaflet.DestroyMapAsync(); } catch { /* circuit gone */ }
+    }
+}

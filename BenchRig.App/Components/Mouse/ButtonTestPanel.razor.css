@@ -1,0 +1,22 @@
+.bt-stage {
+    border: 1px dashed var(--border); border-radius: var(--r-md); background: var(--bg-0);
+    padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;
+    user-select: none; touch-action: none; cursor: pointer;
+}
+.bt-hint { color: var(--text-2); font-size: .8rem; margin: 0; }
+
+.mouse-diagram {
+    position: relative; width: 120px; height: 190px;
+    border: 2px solid var(--border); border-radius: 60px 60px 52px 52px;
+    background: var(--surface-1);
+}
+.m-btn { position: absolute; top: 0; height: 84px; display: grid; place-items: center; font-weight: 700; color: var(--text-2); transition: all .07s ease; }
+.m-left { left: 0; width: 49%; border-radius: 58px 0 0 0; border-right: 1px solid var(--border); }
+.m-right { right: 0; width: 49%; border-radius: 0 58px 0 0; }
+.m-mid { left: 50%; transform: translateX(-50%); top: 14px; width: 22px; height: 46px; border-radius: 11px; background: var(--surface-3); z-index: 2; }
+.m-btn span { display: block; font-size: .7rem; font-family: var(--mono); color: var(--text-1); }
+.m-side { position: absolute; left: -26px; width: 22px; height: 30px; border-radius: 6px 0 0 6px; background: var(--surface-1); border: 1px solid var(--border); font-size: .6rem; display: grid; place-items: center; color: var(--text-2); transform: rotate(-90deg); }
+.m-back { top: 64px; }
+.m-fwd { top: 104px; }
+.m-btn.lit, .m-side.lit { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--text-on-accent); box-shadow: 0 0 12px var(--glow); }
+.m-mid.lit { background: var(--cream); }

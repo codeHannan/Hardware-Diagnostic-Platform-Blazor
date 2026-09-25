@@ -1,0 +1,72 @@
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Key Registration</h3>
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+    </div>
+
+    <div class="kbd-focusbar @(_focused ? "active" : "")">
+        <span><span class="kbd-dot"></span> @(_focused ? "Capturing — press any key" : "Click the keyboard below to start capturing")</span>
+        <span class="muted">@_tested.Count / @KeyboardLayout.TotalKeys keys verified</span>
+    </div>
+
+    <div class="kbd-capture" tabindex="0" @ref="_el"
+         @onkeydown="OnDown" @onkeyup="OnUp" @onkeydown:preventDefault="true"
+         @onfocus="() => _focused = true" @onblur="() => _focused = false" @onclick="Focus">
+        <div class="keyboard">
+            @foreach (var row in KeyboardLayout.Rows)
+            {
+                <div class="krow">
+                    @foreach (var k in row)
+                    {
+                        <span class="kcap @Cls(k.Code)" style="flex-grow:@k.Width">@k.Label</span>
+                    }
+                </div>
+            }
+            <div class="kbd-arrows">
+                @foreach (var row in KeyboardLayout.ArrowRows)
+                {
+                    <div class="krow" style="justify-content:center">
+                        @foreach (var k in row)
+                        {
+                            <span class="kcap @Cls(k.Code)">@k.Label</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <p class="muted" style="margin-top:.8rem">Press every key once — verified keys stay highlighted so you can spot any that never register.</p>
+</div>
+
+@code {
+    private ElementReference _el;
+    private readonly HashSet<string> _down = new();
+    private readonly HashSet<string> _tested = new();
+    private bool _focused;
+    private bool _autofocused;
+
+    private string Cls(string code)
+        => (_down.Contains(code) ? "down" : "") + (_tested.Contains(code) ? " tested" : "");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_autofocused) { _autofocused = true; try { await _el.FocusAsync(); } catch { } }
+    }
+
+    private async Task Focus() { try { await _el.FocusAsync(); } catch { } }
+
+    private void OnDown(KeyboardEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.Code)) return;
+        _down.Add(e.Code);
+        _tested.Add(e.Code);
+    }
+
+    private void OnUp(KeyboardEventArgs e) => _down.Remove(e.Code);
+
+    private void Reset() { _down.Clear(); _tested.Clear(); }
+
+    public void Dispose() { }
+}

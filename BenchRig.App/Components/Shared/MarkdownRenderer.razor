@@ -1,0 +1,44 @@
+@using System.Text
+@using System.Text.RegularExpressions
+
+<div class="markdown">@((MarkupString)Html)</div>
+
+@code {
+    [Parameter] public string Content { get; set; } = "";
+
+    private string Html => Render(Content);
+
+    // Minimal, safe-ish markdown subset: headings, bold, italic, inline code,
+    // code fences, links, and paragraphs. Input is HTML-encoded first.
+    private static string Render(string md)
+    {
+        if (string.IsNullOrWhiteSpace(md)) return "";
+        var encoded = System.Net.WebUtility.HtmlEncode(md).Replace("\r\n", "\n");
+
+        // Code fences
+        encoded = Regex.Replace(encoded, "```(.*?)```", m => $"<pre><code>{m.Groups[1].Value.Trim('\n')}</code></pre>", RegexOptions.Singleline);
+        // Headings
+        encoded = Regex.Replace(encoded, @"^### (.+)$", "<h4>$1</h4>", RegexOptions.Multiline);
+        encoded = Regex.Replace(encoded, @"^## (.+)$", "<h3>$1</h3>", RegexOptions.Multiline);
+        encoded = Regex.Replace(encoded, @"^# (.+)$", "<h2>$1</h2>", RegexOptions.Multiline);
+        // Bold / italic / inline code
+        encoded = Regex.Replace(encoded, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+        encoded = Regex.Replace(encoded, @"\*(.+?)\*", "<em>$1</em>");
+        encoded = Regex.Replace(encoded, @"`(.+?)`", "<code>$1</code>");
+        // Links [text](url) - only http(s)
+        encoded = Regex.Replace(encoded, @"\[(.+?)\]\((https?://[^\s)]+)\)", "<a href=\"$2\" target=\"_blank\" rel=\"noopener\">$1</a>");
+
+        // Paragraphs from double newlines
+        var blocks = encoded.Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
+        var sb = new StringBuilder();
+        foreach (var b in blocks)
+        {
+            var trimmed = b.Trim();
+            if (trimmed.StartsWith("<h") || trimmed.StartsWith("<pre"))
+                sb.Append(trimmed);
+            else
+                sb.Append("<p>").Append(trimmed.Replace("\n", "<br/>")).Append("</p>");
+        }
+        return sb.ToString();
+    }
+}

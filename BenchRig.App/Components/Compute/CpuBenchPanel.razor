@@ -1,0 +1,72 @@
+@inject ComputeTestOrchestrator Orch
+@inject ComputeDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>CPU Benchmark</h3>
+        <div class="test-toolbar">
+            <select class="select" @bind="_presetIndex" disabled="@State.IsRunning">
+                @for (int i = 0; i < ComputePresets.Cpu.Length; i++)
+                {
+                    <option value="@i">@ComputePresets.Cpu[i].Name</option>
+                }
+            </select>
+            <button class="btn btn-primary" disabled="@State.IsRunning" @onclick="Run">@(State.IsRunning ? "Running…" : "Run")</button>
+        </div>
+    </div>
+    <p class="muted">@Preset.Desc · multi-threaded integer + floating-point + memory kernel across @Threads threads. Measures single-core and multi-core throughput.</p>
+
+    @if (State.IsRunning)
+    {
+        <div class="centered"><ProgressRing Percent="State.ProgressPercent" /></div>
+        <p class="muted" style="text-align:center">@State.Phase</p>
+    }
+    else if (State.Cpu is { } c)
+    {
+        <div class="result-grid">
+            <MetricCard Label="Single-core" Value="@c.SingleScore.ToString("0")" Sub="@($"≈ GB6 {c.EstGeekbenchSingle:0}")" />
+            <MetricCard Label="Multi-core" Value="@c.MultiScore.ToString("0")" Sub="@($"≈ GB6 {c.EstGeekbenchMulti:0}")" />
+            <MetricCard Label="Threads" Value="@c.ThreadsUsed.ToString()" />
+            <MetricCard Label="MT scaling" Value="@c.MultiThreadRatio.ToString("0.0")" Unit="×" />
+        </div>
+
+        <h4 class="cmp-title">Multi-core vs reference CPUs <span class="muted">(approx., Geekbench-scaled)</span></h4>
+        <div class="cmp">
+            @foreach (var row in CompareRows(c.MultiScore))
+            {
+                <div class="cmp-row @(row.IsYou ? "you" : "")">
+                    <span class="cmp-name">@row.Name</span>
+                    <div class="cmp-bar"><div style="width:@(row.Pct)%"></div></div>
+                    <span class="cmp-val mono">@row.Score.ToString("0")</span>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="muted">Pick a preset and run. Longer presets give steadier results under sustained load.</p>
+    }
+</div>
+
+@code {
+    private int _presetIndex = 1;
+    private CpuPreset Preset => ComputePresets.Cpu[_presetIndex];
+    private int Threads => State.Hardware?.Threads is > 0 ? State.Hardware!.Threads : Environment.ProcessorCount;
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private async Task Run() => await Orch.RunCpuAsync(Preset.DurationMsPerPass);
+
+    private record Row(string Name, double Score, double Pct, bool IsYou);
+
+    private List<Row> CompareRows(double you)
+    {
+        var entries = ComputePresets.ReferenceCpus.Select(r => (Name: r.Name, Score: r.Multi, You: false)).ToList();
+        entries.Add((string.IsNullOrWhiteSpace(State.CpuName) ? "Your CPU" : State.CpuName, you, true));
+        double max = Math.Max(1, entries.Max(e => e.Score));
+        return entries.OrderByDescending(e => e.Score)
+            .Select(e => new Row(e.Name, e.Score, e.Score / max * 100, e.You)).ToList();
+    }
+}

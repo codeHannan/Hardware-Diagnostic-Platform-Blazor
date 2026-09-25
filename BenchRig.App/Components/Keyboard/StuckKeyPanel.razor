@@ -1,0 +1,90 @@
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Stuck Key Detection</h3>
+        <div class="test-toolbar">
+            <label style="margin:0">Flag after</label>
+            <select class="select" @bind="_thresholdSec">
+                <option value="2">2 s</option>
+                <option value="3">3 s</option>
+                <option value="5">5 s</option>
+            </select>
+            <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+        </div>
+    </div>
+
+    <div class="kbd-focusbar @(_focused ? "active" : "")">
+        <span><span class="kbd-dot"></span> @(_focused ? "Monitoring held keys" : "Click below to start monitoring")</span>
+        <span class="muted">@_stuckSeen stuck flagged</span>
+    </div>
+
+    <div class="kbd-capture click-pad" tabindex="0" @ref="_el" style="min-height:170px; align-items:flex-start"
+         @onkeydown="OnDown" @onkeyup="OnUp" @onkeydown:preventDefault="true"
+         @onfocus="() => _focused = true" @onblur="() => _focused = false" @onclick="Focus">
+        <div style="width:100%; padding:1rem">
+            @if (_held.Count == 0)
+            {
+                <div class="pad-hint" style="text-align:center; margin:2rem auto">No keys are currently held. Tap keys normally — if any stays "down" after release, it shows here in red as stuck.</div>
+            }
+            else
+            {
+                <div class="chip-list">
+                    @foreach (var kv in _held)
+                    {
+                        var secs = (NowMs() - kv.Value) / 1000.0;
+                        <span class="keychip @(secs >= _thresholdSec ? "bad" : "warn")">@Friendly(kv.Key) · @secs.ToString("0.0")s</span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="result-grid">
+        <MetricCard Label="Held now" Value="@_held.Count.ToString()" />
+        <MetricCard Label="Stuck flagged" Value="@_stuckSeen.ToString()" />
+        <MetricCard Label="Status" Value="@(_stuckSeen == 0 ? "Clean" : "Check keys")" />
+    </div>
+</div>
+
+@code {
+    private ElementReference _el;
+    private bool _focused, _autofocused;
+    private int _thresholdSec = 3;
+    private int _stuckSeen;
+    private readonly Dictionary<string, double> _held = new();
+    private readonly HashSet<string> _flagged = new();
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+        => _timer = new System.Threading.Timer(_ => Tick(), null, 250, 250);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    { if (firstRender && !_autofocused) { _autofocused = true; try { await _el.FocusAsync(); } catch { } } }
+    private async Task Focus() { try { await _el.FocusAsync(); } catch { } }
+
+    private void OnDown(KeyboardEventArgs e)
+    {
+        if (e.Repeat || string.IsNullOrEmpty(e.Code)) return;
+        if (!_held.ContainsKey(e.Code)) _held[e.Code] = NowMs();
+    }
+
+    private void OnUp(KeyboardEventArgs e) => _held.Remove(e.Code);
+
+    private void Tick()
+    {
+        foreach (var kv in _held)
+        {
+            if ((NowMs() - kv.Value) / 1000.0 >= _thresholdSec && _flagged.Add(kv.Key))
+                _stuckSeen++;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private static double NowMs() => (DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+    private static string Friendly(string code) => code.StartsWith("Key") ? code[3..] : code.StartsWith("Digit") ? code[5..] : code;
+
+    private void Reset() { _held.Clear(); _flagged.Clear(); _stuckSeen = 0; }
+
+    public void Dispose() => _timer?.Dispose();
+}

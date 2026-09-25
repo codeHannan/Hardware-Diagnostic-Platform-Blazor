@@ -1,0 +1,146 @@
+@using BenchRig.App.Core.Models.Support
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+
+<div class="tkt-detail">
+    <div class="tkt-body"><MarkdownRenderer Content="@Body" /></div>
+
+    <div class="tkt-responses">
+        <h4 class="tkt-resp-title">@_responses.Count Response@(_responses.Count == 1 ? "" : "s")</h4>
+
+        @if (_loading)
+        {
+            <LoadingSpinner Text="Loading responses…" Inline="true" Size="16" />
+        }
+        else if (_responses.Count == 0)
+        {
+            <p class="muted tkt-none">
+                @(CanRespond ? "No responses yet. Add the first reply below." : "No responses yet.")
+            </p>
+        }
+        else
+        {
+            @foreach (var r in _responses)
+            {
+                <div class="tkt-resp @(r.IsStaff ? "staff" : "user")">
+                    <div class="tkt-resp-head">
+                        <b>@r.AuthorName</b>
+                        @if (r.IsStaff)
+                        {
+                            <span class="badge badge-ok tkt-resp-tag">Support</span>
+                        }
+                        else
+                        {
+                            <span class="badge tkt-resp-tag">User</span>
+                        }
+                        <span class="muted tkt-resp-time">@TimeAgo.From(r.CreatedAt)</span>
+                    </div>
+                    <div class="tkt-resp-body"><MarkdownRenderer Content="@r.Body" /></div>
+                </div>
+            }
+        }
+    </div>
+
+    @if (CanRespond)
+    {
+        <div class="tkt-reply">
+            <textarea class="textarea" @bind="_reply" @bind:event="oninput"
+                      maxlength="@DiagnosticDefaults.MaxTicketBody"
+                      placeholder="@(AsStaff ? "Write a response to the user…" : "Add a reply for the support team…")"></textarea>
+            <div class="tkt-reply-foot">
+                <span class="tkt-count">@_reply.Length / @DiagnosticDefaults.MaxTicketBody</span>
+                <button class="btn btn-primary btn-sm" disabled="@(_posting || string.IsNullOrWhiteSpace(_reply))" @onclick="PostResponse">
+                    @(_posting ? "Posting…" : "Post reply")
+                </button>
+            </div>
+            @if (_error is { } err) { <p class="validation-message">@err</p> }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string TicketId { get; set; } = "";
+    [Parameter] public string Body { get; set; } = "";
+    [Parameter] public string Status { get; set; } = "open";
+    [Parameter] public bool CanRespond { get; set; }
+    /// <summary>True when the current viewer replies as support/admin (false = the ticket owner).</summary>
+    [Parameter] public bool AsStaff { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private List<TicketResponse> _responses = new();
+    private bool _loading = true;
+    private string _reply = "";
+    private bool _posting;
+    private string? _error;
+    private string _loadedFor = "";
+
+    private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedFor != TicketId)
+        {
+            _loadedFor = TicketId;
+            await LoadResponses();
+        }
+    }
+
+    private async Task LoadResponses()
+    {
+        _loading = true;
+        try
+        {
+            _responses = await Firestore.QueryCollectionAsync<TicketResponse>(
+                FirestoreCollections.ResponsesOf(TicketId),
+                new QueryFilter { OrderByField = "createdAt", OrderDir = "asc" });
+        }
+        catch { _responses = new(); }
+        finally { _loading = false; }
+    }
+
+    private async Task PostResponse()
+    {
+        if (string.IsNullOrWhiteSpace(_reply) || Auth.CurrentUser is null) return;
+        _posting = true; _error = null;
+        try
+        {
+            var u = Auth.CurrentUser;
+            await Firestore.AddDocumentAsync(FirestoreCollections.ResponsesOf(TicketId), new
+            {
+                body = _reply.Trim(),
+                authorUid = u.Uid,
+                authorName = u.DisplayName,
+                isStaff = AsStaff,
+            });
+            // A staff reply moves an open ticket into "in progress" (owner replies don't change status).
+            if (AsStaff && Status == "open")
+                await Firestore.UpdateDocumentAsync(FirestoreCollections.Ticket(TicketId), new { status = "in_progress" });
+
+            _reply = "";
+            await LoadResponses();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message.Contains("UNREACHABLE", OIC) || ex.Message.Contains("timed out", OIC)
+                ? "Couldn't reach the database. Please try again."
+                : "Couldn't post the reply.";
+        }
+        finally { _posting = false; }
+    }
+
+    // ── Shared status badge helpers (reused by the Support + Admin pages) ──
+    public static string StatusClass(string s) => s switch
+    {
+        "resolved" or "closed" => "badge-ok",
+        "in_progress" => "badge-warn",
+        _ => "badge",
+    };
+
+    public static string StatusLabel(string s) => s switch
+    {
+        "in_progress" => "in progress",
+        "closed" => "resolved",
+        _ => s,
+    };
+}

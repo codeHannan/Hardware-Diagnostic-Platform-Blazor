@@ -1,0 +1,22 @@
+.lat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; }
+.lat-cell {
+    display: flex; flex-direction: column; gap: .15rem; position: relative;
+    padding: .7rem .8rem; border-radius: var(--r-sm);
+    background: var(--surface-1); border: 1px solid var(--border);
+}
+.lat-k { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); font-weight: 700; }
+.lat-v { font-size: 1.3rem; font-weight: 750; color: var(--cream); line-height: 1.1; }
+.lat-v small { font-size: .62rem; color: var(--text-2); margin-left: .25rem; font-weight: 600; }
+.lat-grade { position: absolute; top: .5rem; right: .6rem; font-weight: 800; font-size: .95rem; }
+.grade-a { color: var(--ok); }
+.grade-b { color: #5E9E3E; }
+.grade-c { color: var(--warn); }
+.grade-d { color: var(--bad); }
+
+.lat-foot { margin-top: .8rem; }
+
+.spark { display: flex; align-items: flex-end; gap: 2px; height: 80px; margin-top: 1rem; padding: .4rem; background: var(--bg-0); border-radius: var(--r-sm); }
+.bar { flex: 1; min-width: 2px; background: linear-gradient(180deg, var(--accent-strong), var(--accent)); border-radius: 2px 2px 0 0; transition: height .2s ease; }
+.lat-note { margin-top: .6rem; font-size: .78rem; }
+
+@media (max-width: 540px) { .lat-grid { grid-template-columns: repeat(2, 1fr); } }

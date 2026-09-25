@@ -1,0 +1,14 @@
+﻿.progress-ring { position: relative; display: inline-grid; place-items: center; }
+.progress-ring svg { transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--surface-3); stroke-width: 9; }
+.ring-fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 9;
+    stroke-linecap: round;
+    transition: stroke-dashoffset .35s ease;
+    filter: drop-shadow(0 0 6px var(--glow));
+}
+.ring-label { position: absolute; display: flex; align-items: baseline; color: var(--cream); font-family: var(--mono); }
+.ring-value { font-size: 1.6rem; font-weight: 750; }
+.ring-pct { font-size: .85rem; color: var(--text-2); margin-left: 2px; }

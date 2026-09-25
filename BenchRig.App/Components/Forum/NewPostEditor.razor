@@ -1,0 +1,112 @@
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+
+<div class="card npe">
+    <div class="panel-head"><h3>Start a discussion</h3></div>
+    @if (!Auth.IsLoggedIn)
+    {
+        <p class="muted">Please <a href="@AppRoutes.Login">sign in</a> to create a post.</p>
+    }
+    else
+    {
+        <label>Title</label>
+        <input class="input" @bind="_title" @bind:event="oninput" maxlength="@DiagnosticDefaults.MaxPostTitle" placeholder="What's the issue?" />
+        <div class="npe-count">@_title.Length / @DiagnosticDefaults.MaxPostTitle</div>
+
+        <div class="npe-body-head">
+            <label>Body <span class="muted">(markdown)</span></label>
+            <button class="npe-toggle @(_preview ? "on" : "")" @onclick="() => _preview = !_preview">
+                @(_preview ? "Edit" : "Preview")
+            </button>
+        </div>
+        @if (_preview)
+        {
+            <div class="npe-preview">
+                @if (string.IsNullOrWhiteSpace(_body)) { <p class="muted">Nothing to preview yet.</p> }
+                else { <MarkdownRenderer Content="@_body" /> }
+            </div>
+        }
+        else
+        {
+            <textarea class="textarea" @bind="_body" @bind:event="oninput" maxlength="@DiagnosticDefaults.MaxPostBody"
+                      placeholder="Describe your problem, what you've tried, and any BenchRig results…"></textarea>
+            <div class="npe-count">@_body.Length / @DiagnosticDefaults.MaxPostBody</div>
+        }
+
+        <label class="npe-lbl">Tags <span class="muted">(comma separated)</span></label>
+        <input class="input" @bind="_tags" @bind:event="oninput" placeholder="network, latency" />
+        @if (PreviewTags.Length > 0)
+        {
+            <div class="chip-list">@foreach (var t in PreviewTags) { <span class="keychip">#@t</span> }</div>
+        }
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <p class="validation-message">@_error</p>
+        }
+        @if (_posted)
+        {
+            <p class="npe-ok">✓ Posted! Your discussion is live.</p>
+        }
+
+        <button class="btn btn-primary npe-submit" disabled="@(_busy || !CanSubmit)" @onclick="Submit">
+            @(_busy ? "Posting…" : "Post")
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback OnPosted { get; set; }
+
+    private string _title = "";
+    private string _body = "";
+    private string _tags = "";
+    private string? _error;
+    private bool _busy;
+    private bool _preview;
+    private bool _posted;
+
+    private const int MinTitle = 5;
+    private const int MinBody = 15;
+
+    private bool CanSubmit => _title.Trim().Length >= MinTitle && _body.Trim().Length >= MinBody;
+
+    private string[] PreviewTags => _tags
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(t => t.ToLowerInvariant()).Distinct().Take(8).ToArray();
+
+    private async Task Submit()
+    {
+        _error = null; _posted = false;
+        if (_title.Trim().Length < MinTitle) { _error = $"Title must be at least {MinTitle} characters."; return; }
+        if (_body.Trim().Length < MinBody) { _error = $"Body must be at least {MinBody} characters."; return; }
+
+        _busy = true;
+        try
+        {
+            var user = Auth.CurrentUser!;
+            await Firestore.AddDocumentAsync(FirestoreCollections.ForumPosts, new
+            {
+                title = _title.Trim(),
+                body = _body.Trim(),
+                authorUid = user.Uid,
+                authorName = user.DisplayName,
+                tags = PreviewTags,
+                avgRating = 0.0,
+                ratingCount = 0,
+                commentCount = 0,
+                updatedAt = DateTime.UtcNow.ToString("o"),
+            });
+            _title = _body = _tags = "";
+            _preview = false; _posted = true;
+            await OnPosted.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message.Contains("UNREACHABLE", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("timed out", StringComparison.OrdinalIgnoreCase)
+                ? "Couldn't reach the database. Please try again."
+                : "Could not post. Please try again.";
+        }
+        finally { _busy = false; }
+    }
+}

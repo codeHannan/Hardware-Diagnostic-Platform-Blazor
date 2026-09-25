@@ -1,0 +1,65 @@
+@page "/report"
+@inject ReportOrchestrator Orch
+@inject ReportState State
+@inject IJSRuntime Js
+@implements IDisposable
+
+<PageTitle>Diagnostic Report - BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Diagnostic Report</h1>
+    <p>Compile the results of every diagnostic you've run this session into a single summary you can export.</p>
+</div>
+
+<div class="stat-row" style="margin-bottom:1.2rem">
+    <button class="btn btn-primary" @onclick="Compile">Compile report</button>
+    @if (State.Report is not null)
+    {
+        <button class="btn" @onclick="DownloadMarkdown">Export Markdown</button>
+    }
+</div>
+
+@if (State.Report is { } report)
+{
+    <div class="card fade-in">
+        <p class="muted">@report.Summary</p>
+        @if (report.Sections.Count == 0)
+        {
+            <p>No diagnostics recorded yet. Run a few tests, then compile again.</p>
+        }
+        else
+        {
+            <div class="page-grid">
+                @foreach (var reportSection in report.Sections)
+                {
+                    <div class="report-section">
+                        <h3>@reportSection.Title</h3>
+                        <dl class="kvs">
+                            @foreach (var (k, v) in reportSection.Metrics)
+                            {
+                                <dt>@k</dt><dd>@v</dd>
+                            }
+                        </dl>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card"><p class="muted">Press "Compile report" to gather your latest results.</p></div>
+}
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private void Compile() => Orch.Compile();
+
+    private async Task DownloadMarkdown()
+    {
+        var md = Orch.ToMarkdown();
+        await Js.InvokeVoidAsync("BenchRigDownload", "benchrig-report.md", "text/markdown", md);
+    }
+}

@@ -1,0 +1,86 @@
+.chat-root { position: fixed; bottom: 1.4rem; right: 1.4rem; z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: .8rem; }
+
+/* ── Floating toggle ──
+   One button that morphs between the Gemini bubble (closed) and a dark close
+   button (open). Both faces stay mounted, so the ✕ and the spark animate
+   their way in / out rather than hard-swapping. */
+.chat-toggle {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 56px; box-sizing: border-box;
+    border: 1px solid var(--border-strong);
+    cursor: pointer; overflow: hidden; white-space: nowrap;
+    color: var(--cream); font: inherit;
+    transition: width .34s cubic-bezier(.2, .7, .2, 1), padding .34s cubic-bezier(.2, .7, .2, 1),
+                border-radius .34s cubic-bezier(.2, .7, .2, 1), background .3s ease,
+                box-shadow .25s ease, transform .12s ease, border-color .25s ease;
+}
+.chat-toggle:active { transform: translateY(1px); }
+
+/* Closed — the Gemini "bubble" */
+.is-closed {
+    padding: 0 15px;
+    border-radius: 28px 28px 8px 28px;   /* speech-bubble: squared bottom-right corner */
+    background:
+        radial-gradient(120% 150% at 22% 12%, rgba(255, 255, 255, .07), transparent 52%),
+        linear-gradient(158deg, var(--surface-3), var(--surface-1));
+    box-shadow: 0 10px 30px -8px var(--glow), inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+.is-closed:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 16px 40px -8px var(--glow), 0 0 0 1px var(--glow-soft);
+    animation: none;                      /* hand off from the idle pulse */
+}
+
+/* Open — a darker close button */
+.is-open {
+    width: 56px; padding: 0; border-radius: 50%;
+    border-color: var(--border);
+    background:
+        radial-gradient(120% 150% at 22% 12%, var(--sheen-strong), transparent 52%),
+        linear-gradient(158deg, var(--surface-2), var(--surface-3));
+    box-shadow: 0 10px 26px -10px var(--shadow-ink), inset 0 1px 0 var(--inset-hi);
+}
+.is-open:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 14px 34px -8px var(--glow), 0 0 0 1px var(--glow-soft);
+}
+
+/* Gemini lockup (spark + wordmark) — the "closed" face */
+.ct-gemini {
+    display: inline-flex; align-items: center;
+    transition: opacity .26s ease, transform .3s cubic-bezier(.2, .7, .2, 1);
+}
+.is-open .ct-gemini { opacity: 0; transform: scale(.5) rotate(90deg); pointer-events: none; }
+
+.ct-logo { display: inline-flex; line-height: 0; flex: none; font-size: 26px; }
+.ct-logo svg { display: block; }
+.is-closed:hover .ct-logo { animation: spark-spin .7s cubic-bezier(.2, .7, .2, 1); }
+@keyframes spark-spin { from { transform: rotate(-35deg) scale(.9); } to { transform: rotate(0) scale(1); } }
+
+/* "Gemini" wordmark — collapsed until hover (closed state only) */
+.ct-text {
+    display: inline-flex; align-items: center; line-height: 0; font-size: 19px; color: var(--cream);
+    max-width: 0; opacity: 0; margin-left: 0; overflow: hidden;
+    transition: max-width .36s cubic-bezier(.2, .7, .2, 1), opacity .26s ease,
+                margin-left .36s cubic-bezier(.2, .7, .2, 1);
+}
+.ct-text svg { display: block; }
+.is-closed:hover .ct-text { max-width: 110px; opacity: 1; margin-left: .55rem; }
+
+/* Close ✕ — the "open" face; spins + scales its way in and out */
+.ct-x {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: 1.3rem; line-height: 1; color: var(--text-0);
+    opacity: 0; transform: scale(.3) rotate(-120deg); pointer-events: none;
+    transition: opacity .26s ease, transform .34s cubic-bezier(.2, .7, .2, 1), color .2s ease;
+}
+.is-open .ct-x { opacity: 1; transform: scale(1) rotate(0); }
+.is-open:hover .ct-x { color: var(--ember); }
+
+@media (prefers-reduced-motion: reduce) {
+    .is-closed:hover .ct-logo { animation: none; }
+    .chat-toggle, .ct-gemini, .ct-text, .ct-x { transition-duration: .12s; }
+}

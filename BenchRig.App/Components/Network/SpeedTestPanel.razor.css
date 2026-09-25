@@ -1,0 +1,55 @@
+.speedtest { padding: 1.4rem 1.6rem 1.6rem; }
+
+/* server description bar */
+.st-serverbar {
+    display: flex; align-items: flex-start; gap: .8rem;
+    padding: .9rem 1.1rem; margin-bottom: 1.2rem;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.st-srv-icon { color: var(--ember); font-size: 1.05rem; line-height: 1.5; filter: drop-shadow(0 0 8px var(--glow-soft)); flex-shrink: 0; }
+.st-srv-text { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+.st-srv-name { font-size: .8rem; font-weight: 700; color: var(--cream); text-transform: uppercase; letter-spacing: .06em; }
+.st-srv-desc { color: var(--text-1); font-size: .84rem; line-height: 1.55; }
+.st-srv-desc b { color: var(--text-0); }
+
+/* gauge + GO */
+.st-stage { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: .6rem 0 1rem; }
+.go-btn {
+    width: 92px; height: 92px; border-radius: 50%; border: 2px solid var(--accent);
+    background: radial-gradient(circle at 35% 30%, var(--accent-strong), var(--accent));
+    color: var(--text-on-accent); font-weight: 800; font-size: 1.15rem; letter-spacing: .04em;
+    cursor: pointer; box-shadow: 0 8px 26px var(--glow);
+    transition: transform .12s ease, filter .12s ease;
+    margin-top: -2.4rem; /* tuck the button just under the gauge opening */
+}
+.go-btn:hover:not(:disabled) { transform: scale(1.06); filter: brightness(1.08); }
+.go-btn:disabled { cursor: default; opacity: .65; }
+.go-btn.busy { animation: pulse-glow 1.4s ease-in-out infinite; }
+
+/* metric row */
+.st-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; }
+.st-metric {
+    display: flex; align-items: center; gap: .7rem;
+    padding: .8rem 1rem; border-radius: var(--r-md);
+    background: var(--surface-1); border: 1px solid var(--border);
+    transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.st-metric.on { border-color: var(--accent); background: rgba(91,155,213,.12); box-shadow: 0 0 0 1px var(--accent) inset; }
+.st-metric > div { display: flex; flex-direction: column; }
+.st-ico { color: var(--accent); font-size: 1.05rem; }
+.st-label { color: var(--text-2); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.st-num { font-size: 1.45rem; font-weight: 750; color: var(--cream); line-height: 1.1; }
+.st-num small { font-size: .65rem; color: var(--text-2); margin-left: .25rem; font-weight: 600; }
+
+/* footer */
+.st-foot {
+    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    margin-top: 1.3rem; padding-top: 1.1rem; border-top: 1px solid var(--border);
+}
+.st-conn { display: flex; flex-direction: column; gap: .15rem; min-width: 120px; }
+.st-conn-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); font-weight: 700; }
+.st-conn-val { color: var(--cream); font-size: .88rem; font-weight: 600; }
+
+@media (max-width: 720px) {
+    .st-metrics { grid-template-columns: repeat(2, 1fr); }
+}

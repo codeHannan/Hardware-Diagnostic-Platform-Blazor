@@ -1,0 +1,67 @@
+@inject NetworkDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head"><h3>Latency &amp; Jitter</h3></div>
+
+    <div class="lat-grid">
+        <div class="lat-cell"><span class="lat-k">Idle</span><span class="lat-v mono">@Fmt(State.PingMs)<small>ms</small></span></div>
+        <div class="lat-cell"><span class="lat-k">Average</span><span class="lat-v mono">@Fmt(State.AvgPingMs)<small>ms</small></span></div>
+        <div class="lat-cell"><span class="lat-k">Max</span><span class="lat-v mono">@Fmt(State.MaxPingMs)<small>ms</small></span></div>
+        <div class="lat-cell"><span class="lat-k">Jitter</span><span class="lat-v mono">@Fmt(State.JitterMs)<small>ms</small></span></div>
+        <div class="lat-cell"><span class="lat-k">Loaded</span><span class="lat-v mono">@Fmt(State.LoadedPingMs)<small>ms</small></span></div>
+        <div class="lat-cell">
+            <span class="lat-k">Bufferbloat</span>
+            <span class="lat-v mono">@Fmt(State.Bufferbloat)<small>ms</small></span>
+            @if (State.LoadedPingMs > 0)
+            {
+                <span class="lat-grade @BloatClass">@BloatGrade</span>
+            }
+        </div>
+    </div>
+
+    <div class="lat-foot">
+        <span class="muted">Packet loss: <b class="mono">@Loss%</b></span>
+    </div>
+
+    @if (State.LatencyHistory.Count > 0)
+    {
+        <div class="spark">
+            @foreach (var l in State.LatencyHistory)
+            {
+                <span class="bar" style="height:@(BarHeight(l.PingMs))%" title="@l.PingMs.ToString("F0") ms"></span>
+            }
+        </div>
+        <p class="muted lat-note">Round-trip time across @State.LatencyHistory.Count samples · loaded latency measures lag while the link is saturated (bufferbloat).</p>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private static string Fmt(double v) => v <= 0 ? "N/A" : v.ToString("0.0");
+    private string Loss => State.StabilityResult?.PacketLossPercent.ToString("0") ?? "0";
+
+    private string BloatGrade => State.Bufferbloat switch
+    {
+        < 30 => "A",
+        < 60 => "B",
+        < 120 => "C",
+        _ => "D",
+    };
+    private string BloatClass => State.Bufferbloat switch
+    {
+        < 30 => "grade-a",
+        < 60 => "grade-b",
+        < 120 => "grade-c",
+        _ => "grade-d",
+    };
+
+    private double _max = 50;
+    private double BarHeight(double ping)
+    {
+        if (ping > _max) _max = ping;
+        return Math.Clamp(ping / Math.Max(1, _max) * 100, 4, 100);
+    }
+}

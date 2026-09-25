@@ -1,0 +1,69 @@
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Kohi Click Test</h3>
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+    </div>
+    <p class="muted">Classic real-time CPS meter. Start clicking — the rate updates live and the session resets if you pause for a moment.</p>
+
+    <div class="click-pad @(_clicks.Count > 0 ? "armed" : "")" @onpointerdown="OnClick" @oncontextmenu:preventDefault="true" @oncontextmenu="Noop">
+        <div>
+            <div class="pad-big">@_cps.ToString("0.0")</div>
+            <div class="pad-sub">CPS now · @_total total · peak @_peak.ToString("0.0")</div>
+        </div>
+    </div>
+
+    <div class="result-grid">
+        <MetricCard Label="Current CPS" Value="@_cps.ToString("0.0")" />
+        <MetricCard Label="Peak CPS" Value="@_peak.ToString("0.0")" />
+        <MetricCard Label="Total clicks" Value="@_total.ToString()" />
+    </div>
+</div>
+
+@code {
+    private readonly List<long> _clicks = new();   // timestamps (ms)
+    private long _lastClick;
+    private double _cps;
+    private double _peak;
+    private int _total;
+    private readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+        => _timer = new System.Threading.Timer(_ => Tick(), null, 100, 100);
+
+    private void OnClick(PointerEventArgs e)
+    {
+        long now = _sw.ElapsedMilliseconds;
+        if (_lastClick > 0 && now - _lastClick > 1500)
+        {
+            // paused -> new session
+            _clicks.Clear();
+            _total = 0;
+        }
+        _lastClick = now;
+        _clicks.Add(now);
+        _total++;
+        Recompute(now);
+    }
+
+    private void Tick()
+    {
+        Recompute(_sw.ElapsedMilliseconds);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Recompute(long now)
+    {
+        // CPS = clicks within the last 1000 ms
+        _clicks.RemoveAll(t => now - t > 1000);
+        _cps = _clicks.Count;        // clicks in the last second
+        if (_cps > _peak) _peak = _cps;
+    }
+
+    private void Reset() { _clicks.Clear(); _cps = 0; _peak = 0; _total = 0; _lastClick = 0; }
+    private void Noop() { }
+
+    public void Dispose() => _timer?.Dispose();
+}

@@ -1,0 +1,47 @@
+/* ── Stat strip ── */
+.atk-stats { display: flex; flex-wrap: wrap; gap: .7rem; margin-bottom: 1.2rem; }
+.atk-stat {
+    display: flex; flex-direction: column; align-items: center; min-width: 78px;
+    padding: .6rem .9rem; border-radius: var(--r-md); border: 1px solid var(--border);
+    background: var(--surface-1); color: var(--text-1); cursor: pointer; transition: all .12s ease;
+}
+.atk-stat:hover { border-color: var(--accent); }
+.atk-stat.on { border-color: var(--accent); background: var(--surface-2); }
+.atk-stat-n { font-size: 1.3rem; font-weight: 700; color: var(--cream); }
+.atk-stat-l { font-size: .72rem; text-transform: capitalize; }
+
+/* ── Master-detail ── */
+.atk { display: grid; grid-template-columns: 380px 1fr; gap: 1.4rem; align-items: start; }
+.atk-list { display: flex; flex-direction: column; gap: .7rem; min-width: 0; }
+.atk-toolbar { display: flex; gap: .5rem; }
+.atk-toolbar .input { flex: 1; min-width: 0; }
+.atk-prio { width: auto; }
+
+.atk-item {
+    width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer;
+    padding: .8rem 1rem; border-radius: var(--r-md); border: 1px solid var(--border);
+    background: linear-gradient(160deg, var(--surface-2), var(--surface-1)); transition: border-color .12s ease;
+    display: flex; flex-direction: column; gap: .4rem;
+}
+.atk-item:hover { border-color: var(--accent); }
+.atk-item.on { border-color: var(--accent); background: var(--surface-2); }
+.atk-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem; }
+.atk-subject { font-weight: 600; font-size: .95rem; }
+.atk-item-meta { display: flex; align-items: center; gap: .5rem; font-size: .76rem; flex-wrap: wrap; }
+
+/* ── Detail ── */
+.atk-detail { position: sticky; top: 1rem; min-width: 0; }
+.atk-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
+.atk-detail-head h3 { margin: 0; }
+.atk-detail-sub { font-size: .8rem; margin: .2rem 0 0; }
+.atk-controls { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.atk-controls label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; color: var(--text-1); }
+.atk-controls .select { width: auto; }
+.atk-empty { text-align: center; padding: 2rem; }
+
+.btn-sm { padding: .35rem .7rem; font-size: .8rem; }
+
+@media (max-width: 950px) {
+    .atk { grid-template-columns: 1fr; }
+    .atk-detail { position: static; }
+}

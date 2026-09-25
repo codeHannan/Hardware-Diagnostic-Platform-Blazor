@@ -1,0 +1,21 @@
+<div class="conn-error card">
+    <div class="ce-icon">⚠</div>
+    <div>
+        <h3>Couldn't reach the database</h3>
+        <p class="muted">@(string.IsNullOrWhiteSpace(Message) ? "The Firebase backend isn't responding." : Message)</p>
+        <p class="muted ce-hint">
+            This feature needs Firebase. Make sure your project's config is set in
+            <code>wwwroot/js/firebase-config.js</code>, that <b>Authentication</b> and <b>Firestore</b> are
+            enabled, and that <code>firestore.rules</code> is deployed. See <code>FIREBASE_SETUP.md</code>.
+        </p>
+        @if (OnRetry.HasDelegate)
+        {
+            <button class="btn btn-primary" @onclick="OnRetry">Try again</button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public EventCallback OnRetry { get; set; }
+}

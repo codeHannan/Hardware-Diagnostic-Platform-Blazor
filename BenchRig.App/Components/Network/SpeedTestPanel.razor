@@ -1,0 +1,93 @@
+@inject NetworkTestOrchestrator Orch
+@inject NetworkDiagState State
+@implements IDisposable
+
+<div class="card speedtest">
+    <div class="st-serverbar">
+        <span class="st-srv-icon">◇</span>
+        <div class="st-srv-text">
+            <span class="st-srv-name">Test server · Cloudflare global edge</span>
+            <span class="st-srv-desc">
+                Your speed is measured against <b>Cloudflare's anycast edge network</b>, one of the largest on
+                the internet. It automatically routes to the data centre nearest you, so the result reflects
+                your real connection (your ISP line and any congestion), not a slow test server.
+            </span>
+        </div>
+    </div>
+
+    <div class="st-stage">
+        <SpeedGauge Value="GaugeValue" Max="GaugeMax" Unit="Mbps" Caption="@PhaseCaption" />
+        <button class="go-btn @(State.IsRunning ? "busy" : "")" disabled="@State.IsRunning" @onclick="Run">
+            @(State.IsRunning ? "…" : State.Phase == SpeedPhase.Done ? "AGAIN" : "GO")
+        </button>
+    </div>
+
+    <div class="st-metrics">
+        <div class="st-metric @Active(SpeedPhase.Download)">
+            <span class="st-ico">▼</span>
+            <div><span class="st-label">Download</span><span class="st-num mono">@Fmt(State.DownloadMbps)<small>Mbps</small></span></div>
+        </div>
+        <div class="st-metric @Active(SpeedPhase.Upload)">
+            <span class="st-ico">▲</span>
+            <div><span class="st-label">Upload</span><span class="st-num mono">@Fmt(State.UploadMbps)<small>Mbps</small></span></div>
+        </div>
+        <div class="st-metric @Active(SpeedPhase.Latency)">
+            <span class="st-ico">⟳</span>
+            <div><span class="st-label">Ping</span><span class="st-num mono">@Fmt(State.PingMs)<small>ms</small></span></div>
+        </div>
+        <div class="st-metric">
+            <span class="st-ico">≈</span>
+            <div><span class="st-label">Jitter</span><span class="st-num mono">@Fmt(State.JitterMs)<small>ms</small></span></div>
+        </div>
+    </div>
+
+    <div class="st-foot">
+        @if (State.NetworkInfo is { } info)
+        {
+            <div class="st-conn"><span class="st-conn-label">Provider</span><span class="st-conn-val">@Dash(info.Isp)</span></div>
+            <div class="st-conn"><span class="st-conn-label">Public IP</span><span class="st-conn-val mono">@Dash(info.PublicIp)</span></div>
+            <div class="st-conn"><span class="st-conn-label">Server</span><span class="st-conn-val">Cloudflare edge</span></div>
+        }
+        else
+        {
+            <span class="muted">Detecting connection…</span>
+        }
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    private async Task Run() => await Orch.RunFullTestAsync();
+
+    private static string Fmt(double v) => v <= 0 ? "0.0" : v.ToString("0.0");
+    private static string Dash(string s) => string.IsNullOrWhiteSpace(s) ? "N/A" : s;
+    private string Active(SpeedPhase p) => State.Phase == p && State.IsRunning ? "on" : "";
+
+    private double GaugeValue => State.Phase switch
+    {
+        SpeedPhase.Download => State.IsRunning ? State.LiveMbps : State.DownloadMbps,
+        SpeedPhase.Upload => State.IsRunning ? State.LiveMbps : State.UploadMbps,
+        SpeedPhase.Latency => 0,
+        _ => State.DownloadMbps,
+    };
+
+    private double GaugeMax
+    {
+        get
+        {
+            double v = Math.Max(GaugeValue, Math.Max(State.DownloadMbps, State.UploadMbps));
+            return v switch { <= 10 => 10, <= 50 => 50, <= 100 => 100, <= 250 => 250, <= 500 => 500, _ => 1000 };
+        }
+    }
+
+    private string PhaseCaption => State.Phase switch
+    {
+        SpeedPhase.Latency => "Pinging",
+        SpeedPhase.Download => "Download",
+        SpeedPhase.Upload => "Upload",
+        SpeedPhase.Done => "Result",
+        _ => "Ready",
+    };
+}

@@ -1,0 +1,107 @@
+@inject AudioTestOrchestrator Orch
+@inject AudioDiagState State
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Microphone Input</h3>
+        @if (!_capturing)
+        {
+            <button class="btn btn-primary" @onclick="StartMic">Enable microphone</button>
+        }
+        else
+        {
+            <button class="btn" @onclick="StopMic">Stop</button>
+        }
+    </div>
+
+    @if (_capturing)
+    {
+        <p class="muted">Speak into your mic — the level and live waveform respond below. Turn on <b>Hear myself</b> to play your input back through the speakers (use headphones to avoid feedback).</p>
+
+        <div class="wave">
+            @if (_wave.Length == 0)
+            {
+                <span class="muted">…</span>
+            }
+            else
+            {
+                @for (int i = 0; i < _wave.Length; i++)
+                {
+                    <span class="wbar" style="height:@(WaveHeight(_wave[i]))%"></span>
+                }
+            }
+        </div>
+
+        <div class="meter"><div class="meter-fill" style="width:@MeterPercent%"></div></div>
+        <div class="test-toolbar" style="justify-content:space-between; margin-top:.7rem">
+            <span class="muted">Input level: <span class="mono">@State.MicLevelDb.ToString("0") dB</span></span>
+            <button class="btn @(_loopback ? "btn-primary" : "btn-ghost")" @onclick="ToggleLoopback">
+                @(_loopback ? "🔊 Hearing yourself" : "Hear myself")
+            </button>
+        </div>
+        @if (_loopback)
+        {
+            <p class="badge badge-warn" style="margin-top:.7rem">Feedback risk — use headphones</p>
+        }
+    }
+    else
+    {
+        <p class="muted">Enable the microphone to see a live level meter and waveform, and to play your input back.</p>
+    }
+</div>
+
+@code {
+    private bool _capturing;
+    private bool _loopback;
+    private int[] _wave = [];
+    private System.Threading.Timer? _poll;
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+
+    private double MeterPercent => Math.Clamp((State.MicLevelDb + 60) / 60 * 100, 0, 100);
+    private static double WaveHeight(int v) => Math.Clamp(Math.Abs(v - 128) / 128.0 * 100 + 4, 4, 100);
+
+    private async Task StartMic()
+    {
+        if (await Orch.StartMicAsync())
+        {
+            _capturing = true;
+            _poll = new System.Threading.Timer(_ => _ = Sample(), null, 0, 80);
+        }
+    }
+
+    private async Task Sample()
+    {
+        try
+        {
+            await Orch.SampleMicLevelAsync();
+            _wave = await Orch.SampleWaveformAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch { /* device revoked */ }
+    }
+
+    private async Task ToggleLoopback()
+    {
+        _loopback = !_loopback;
+        if (_loopback) await Orch.StartLoopbackAsync();
+        else await Orch.StopLoopbackAsync();
+    }
+
+    private async Task StopMic()
+    {
+        _poll?.Dispose(); _poll = null;
+        _loopback = false;
+        _capturing = false;
+        _wave = [];
+        await Orch.StopMicAsync();
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+        _poll?.Dispose();
+        if (_capturing) { try { _ = Orch.StopMicAsync(); } catch { } }
+    }
+}

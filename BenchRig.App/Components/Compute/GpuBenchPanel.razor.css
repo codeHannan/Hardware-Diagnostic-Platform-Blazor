@@ -1,0 +1,5 @@
+.gpu-canvas {
+    width: 100%; height: 200px; object-fit: cover; display: block;
+    border-radius: var(--r-sm); border: 1px solid var(--border); background: #0e1b27; margin-bottom: 1rem;
+}
+.gpu-canvas.live { box-shadow: 0 0 0 1px var(--accent), 0 0 18px var(--glow); }

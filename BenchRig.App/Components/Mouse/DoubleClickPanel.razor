@@ -1,0 +1,62 @@
+<div class="card">
+    <div class="panel-head">
+        <h3>Double Click Test</h3>
+        <div class="test-toolbar">
+            <label style="margin:0">Threshold</label>
+            <select class="select" @bind="_thresholdMs">
+                <option value="50">50 ms</option>
+                <option value="80">80 ms</option>
+                <option value="120">120 ms</option>
+            </select>
+            <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+        </div>
+    </div>
+    <p class="muted">Click <b>once at a time</b>, deliberately. Two clicks landing within @_thresholdMs ms indicate a worn switch double-clicking on its own.</p>
+
+    <div class="click-pad" @onpointerdown="OnClick" @oncontextmenu:preventDefault="true" @oncontextmenu="Noop">
+        <div>
+            <div class="pad-big @(_lastWasAnomaly ? "bad" : "")">@(_lastInterval > 0 ? _lastInterval.ToString("0") + " ms" : "—")</div>
+            <div class="pad-sub">interval since last click</div>
+            @if (_lastWasAnomaly)
+            {
+                <div class="badge badge-bad" style="margin-top:.6rem">Double-click detected!</div>
+            }
+        </div>
+    </div>
+
+    <div class="result-grid">
+        <MetricCard Label="Clicks" Value="@_total.ToString()" />
+        <MetricCard Label="Double-clicks" Value="@_anomalies.ToString()" />
+        <MetricCard Label="Fastest interval" Value="@(_minInterval < double.MaxValue ? _minInterval.ToString("0") : "—")" Unit="ms" />
+        <MetricCard Label="Verdict" Value="@Verdict" />
+    </div>
+</div>
+
+@code {
+    private int _thresholdMs = 80;
+    private int _total;
+    private int _anomalies;
+    private double _lastInterval;
+    private double _minInterval = double.MaxValue;
+    private bool _lastWasAnomaly;
+    private DateTime _last;
+
+    private string Verdict => _total < 5 ? "—" : _anomalies == 0 ? "Healthy" : _anomalies <= 2 ? "Suspect" : "Faulty";
+
+    private void OnClick(PointerEventArgs e)
+    {
+        var now = DateTime.UtcNow;
+        _total++;
+        if (_last != default)
+        {
+            _lastInterval = (now - _last).TotalMilliseconds;
+            _lastWasAnomaly = _lastInterval < _thresholdMs;
+            if (_lastWasAnomaly) _anomalies++;
+            if (_lastInterval < _minInterval) _minInterval = _lastInterval;
+        }
+        _last = now;
+    }
+
+    private void Reset() { _total = 0; _anomalies = 0; _lastInterval = 0; _minInterval = double.MaxValue; _lastWasAnomaly = false; _last = default; }
+    private void Noop() { }
+}

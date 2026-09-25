@@ -1,0 +1,125 @@
+@inject IJsStripeBridge Stripe
+
+<div class="card donate-panel">
+    <h3>Support BenchRig</h3>
+
+    @if (_loading)
+    {
+        <LoadingSpinner Text="Loading donation options…" />
+    }
+    else if (_options is null || !_options.Configured)
+    {
+        <p class="muted">Donations aren't set up yet.</p>
+        <div class="donate-setup">
+            <p>BenchRig is built and maintained by a small, independent team in our own time, and we keep it
+               completely free and ad-free. A donation — however small — genuinely means a lot: it helps cover
+               hosting, lets us spend more hours building new diagnostics, and keeps the platform growing for
+               everyone. Thank you for even considering it. ♥</p>
+        </div>
+    }
+    else
+    {
+        <p class="muted">BenchRig runs entirely in your browser. Donations keep it independent and ad-free.</p>
+
+        @if (_options.OneTimeConfigured && _options.MonthlyConfigured)
+        {
+            <div class="donate-freq" role="tablist">
+                <button class="df @(_frequency == "once" ? "on" : "")" @onclick='() => SetFrequency("once")'>One-time</button>
+                <button class="df @(_frequency == "monthly" ? "on" : "")" @onclick='() => SetFrequency("monthly")'>Monthly</button>
+            </div>
+        }
+
+        <div class="donate-amounts">
+            @foreach (var t in Tiers)
+            {
+                <button class="da @(_selected?.Cents == t.Cents ? "on" : "")" @onclick="() => Select(t)">
+                    <span class="da-amt">@Money(t.Cents)</span>
+                    @if (!string.IsNullOrEmpty(t.Label)) { <span class="da-label">@t.Label</span> }
+                </button>
+            }
+        </div>
+
+        <button class="btn btn-primary donate-go" disabled="@(_selected is null || _busy)" @onclick="Go">
+            @if (_busy) { <text>Opening…</text> }
+            else if (_selected is null) { <text>Choose an amount</text> }
+            else { <text>Donate @Money(_selected.Cents)@(_frequency == "monthly" ? " / month" : "")</text> }
+        </button>
+
+        @if (_options.Custom is not null)
+        {
+            <button class="donate-other" disabled="@_busy" @onclick="GoCustom">or enter a custom amount →</button>
+        }
+
+        @if (_error is { } err) { <p class="validation-message donate-err">@err</p> }
+
+        <p class="muted donate-secure">
+            🔒 Payments are processed securely by <b>Stripe</b>. No account required, and BenchRig never sees your card details.
+        </p>
+    }
+</div>
+
+@code {
+    private DonationOptions? _options;
+    private bool _loading = true;
+    private string _frequency = "once";
+    private DonationTier? _selected;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _options = await Stripe.GetOptionsAsync(); }
+        catch { _options = null; }
+        finally { _loading = false; }
+        DefaultSelection();
+    }
+
+    private IReadOnlyList<DonationTier> Tiers => _options is null
+        ? []
+        : (_frequency == "monthly" ? _options.Monthly : _options.OneTime).Where(t => t.Configured).ToList();
+
+    private void DefaultSelection()
+    {
+        if (_options is null) return;
+        _frequency = _options.OneTimeConfigured ? "once" : _options.MonthlyConfigured ? "monthly" : "once";
+        _selected = PickDefault();
+    }
+
+    private DonationTier? PickDefault() => Tiers.FirstOrDefault(t => t.Cents == 1000) ?? Tiers.FirstOrDefault();
+
+    private void SetFrequency(string f) { _frequency = f; _selected = PickDefault(); _error = null; }
+    private void Select(DonationTier t) { _selected = t; _error = null; }
+
+    private async Task Go()
+    {
+        if (_selected is null) return;
+        await Open(_selected.Url);
+    }
+
+    private async Task GoCustom()
+    {
+        if (_options?.Custom is null) return;
+        await Open(_options.Custom.Url);
+    }
+
+    private async Task Open(string url)
+    {
+        _busy = true; _error = null;
+        try
+        {
+            var ok = await Stripe.OpenAsync(url);
+            if (!ok) _error = "That donation link isn't configured yet.";
+        }
+        catch { _error = "Couldn't open the donation page. Please try again."; }
+        finally { _busy = false; }
+    }
+
+    private string Money(int cents)
+    {
+        var sym = (_options?.Currency ?? "usd").ToLowerInvariant() switch
+        {
+            "eur" => "€", "gbp" => "£", "inr" => "₹", "pkr" => "₨", _ => "$",
+        };
+        return cents % 100 == 0 ? $"{sym}{cents / 100}" : $"{sym}{cents / 100.0:0.00}";
+    }
+}

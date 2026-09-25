@@ -1,0 +1,240 @@
+@page "/support"
+@using BenchRig.App.Components.Support
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+@implements IDisposable
+
+<PageTitle>Support | BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Support</h1>
+    <p>Open a ticket and our team will get back to you. Track status and read replies right here.</p>
+</div>
+
+@if (!Auth.IsLoggedIn)
+{
+    <div class="card"><p class="muted">Please <a href="@AppRoutes.Login">sign in</a> to submit and view support tickets.</p></div>
+}
+else
+{
+    <div class="sup-grid">
+        <div class="card sup-new">
+            <div class="panel-head"><h3>New ticket</h3></div>
+
+            <label>Subject</label>
+            <input class="input" @bind="_subject" @bind:event="oninput" maxlength="@DiagnosticDefaults.MaxTicketSubject" placeholder="Short summary of the issue" />
+            <div class="sup-count">@_subject.Length / @DiagnosticDefaults.MaxTicketSubject</div>
+
+            <label class="sup-lbl">Describe your issue</label>
+            <textarea class="textarea sup-body" @bind="_body" @bind:event="oninput" maxlength="@DiagnosticDefaults.MaxTicketBody"
+                      placeholder="What's happening, what you've tried, and any BenchRig results…"></textarea>
+            <div class="sup-count">@_body.Length / @DiagnosticDefaults.MaxTicketBody</div>
+
+            @if (_formError is { } fe) { <p class="validation-message">@fe</p> }
+            @if (_posted) { <p class="sup-ok">✓ Ticket submitted. We'll reply here.</p> }
+
+            <button class="btn btn-primary sup-submit" disabled="@(_busy || !CanSubmit)" @onclick="Submit">
+                @(_busy ? "Submitting…" : "Submit ticket")
+            </button>
+        </div>
+
+        <div class="sup-list">
+            <div class="panel-head">
+                <h3>Your tickets</h3>
+                <button class="btn btn-ghost btn-sm" @onclick="Load" disabled="@_loading">↻ Refresh</button>
+            </div>
+
+            @if (_loading)
+            {
+                <LoadingSpinner Text="Loading tickets…" />
+            }
+            else if (_error is { } err)
+            {
+                <ConnectionError Message="@err" OnRetry="Load" />
+            }
+            else if (_tickets.Count == 0)
+            {
+                <div class="card"><p class="muted">No tickets yet. Open one on the left and we'll help you out.</p></div>
+            }
+            else
+            {
+                <div class="sup-toolbar">
+                    <input class="input" @bind="_search" @bind:event="oninput" placeholder="Search your tickets…" />
+                    <select class="select sup-sort" @bind="_sort">
+                        <option value="newest">Newest</option>
+                        <option value="oldest">Oldest</option>
+                    </select>
+                </div>
+                <div class="sup-chips">
+                    <button class="sup-chip @(_statusFilter == "all" ? "on" : "")" @onclick='() => _statusFilter = "all"'>All <span class="sup-n">@_tickets.Count</span></button>
+                    @foreach (var s in PresentStatuses)
+                    {
+                        <button class="sup-chip @(_statusFilter == s ? "on" : "")" @onclick="() => _statusFilter = s">@TicketDetail.StatusLabel(s) <span class="sup-n">@CountOf(s)</span></button>
+                    }
+                </div>
+
+                @if (Filtered.Count == 0)
+                {
+                    <div class="card"><p class="muted">No tickets match your filters.</p></div>
+                }
+                else
+                {
+                    @foreach (var t in Filtered)
+                    {
+                        <div class="sup-card @(_selectedId == t.Id ? "open" : "")">
+                            <button class="sup-card-head" @onclick="() => Toggle(t.Id)">
+                                <div class="sup-card-main">
+                                    <span class="sup-subject">@t.Subject</span>
+                                    <span class="sup-meta muted">@TimeAgo.From(t.CreatedAt ?? DateTime.UtcNow)@(RespCount(t.Id) > 0 ? $" · 💬 {RespCount(t.Id)}" : "")</span>
+                                </div>
+                                <div class="sup-card-badges">
+                                    <span class="badge @TicketDetail.StatusClass(t.Status)">@TicketDetail.StatusLabel(t.Status)</span>
+                                    <span class="sup-caret">@(_selectedId == t.Id ? "▾" : "▸")</span>
+                                </div>
+                            </button>
+                            @if (_selectedId == t.Id)
+                            {
+                                <div class="sup-card-detail">
+                                    <TicketDetail TicketId="@t.Id" Body="@t.Body" Status="@t.Status"
+                                                  CanRespond="@(t.Status != "resolved" && t.Status != "closed")" AsStaff="false" OnChanged="Load" />
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private sealed record TicketDto
+    {
+        public string Id { get; init; } = "";
+        public string Subject { get; init; } = "";
+        public string Body { get; init; } = "";
+        public string Status { get; init; } = "open";
+        public DateTime? CreatedAt { get; init; }
+    }
+
+    private List<TicketDto> _tickets = new();
+    private Dictionary<string, int> _respCounts = new();
+    private string? _selectedId;
+
+    private string _subject = "";
+    private string _body = "";
+    private string? _formError;
+    private bool _busy;
+    private bool _posted;
+
+    private string _search = "";
+    private string _sort = "newest";
+    private string _statusFilter = "all";
+
+    private bool _loading = true;
+    private string? _error;
+
+    private const int MinSubject = 5;
+    private const int MinBody = 15;
+    private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
+    private static readonly string[] StatusOrder = ["open", "in_progress", "resolved"];
+
+    private bool CanSubmit => _subject.Trim().Length >= MinSubject && _body.Trim().Length >= MinBody;
+
+    protected override void OnInitialized() => Auth.OnChange += OnAuth;
+    public void Dispose() => Auth.OnChange -= OnAuth;
+    private void OnAuth() => InvokeAsync(async () => { await Load(); StateHasChanged(); });
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        if (Auth.CurrentUser is null) { _tickets = new(); _loading = false; return; }
+        _loading = true; _error = null;
+        try
+        {
+            _tickets = await Firestore.QueryCollectionAsync<TicketDto>(
+                FirestoreCollections.SupportTickets,
+                new QueryFilter { WhereField = "authorUid", WhereOp = "==", WhereValue = Auth.CurrentUser.Uid });
+            await EnrichAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message.Contains("UNREACHABLE", OIC) || ex.Message.Contains("timed out", OIC)
+                ? "The Firestore database didn't respond in time. Please try again."
+                : "Couldn't load your tickets from Firestore.";
+        }
+        finally { _loading = false; }
+    }
+
+    // Per-ticket response counts so users can see at a glance which tickets have a reply.
+    private async Task EnrichAsync()
+    {
+        if (_tickets.Count == 0) { _respCounts = new(); return; }
+        try
+        {
+            var pairs = await Task.WhenAll(_tickets.Select(async t =>
+                (t.Id, Count: await Firestore.CountCollectionAsync(FirestoreCollections.ResponsesOf(t.Id)))));
+            _respCounts = pairs.ToDictionary(p => p.Id, p => p.Count);
+        }
+        catch { /* leave counts empty */ }
+    }
+
+    private int RespCount(string id) => _respCounts.TryGetValue(id, out var c) ? c : 0;
+
+    private void Toggle(string id) => _selectedId = _selectedId == id ? null : id;
+
+    private IEnumerable<string> PresentStatuses => StatusOrder.Where(s => _tickets.Any(t => t.Status == s));
+    private int CountOf(string s) => _tickets.Count(t => t.Status == s);
+
+    private List<TicketDto> Filtered
+    {
+        get
+        {
+            IEnumerable<TicketDto> q = _tickets;
+            if (_statusFilter != "all") q = q.Where(t => t.Status == _statusFilter);
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim();
+                q = q.Where(t => t.Subject.Contains(s, OIC) || t.Body.Contains(s, OIC));
+            }
+            q = _sort switch
+            {
+                "oldest" => q.OrderBy(t => t.CreatedAt ?? DateTime.MinValue),
+                _ => q.OrderByDescending(t => t.CreatedAt ?? DateTime.MinValue),
+            };
+            return q.ToList();
+        }
+    }
+
+    private async Task Submit()
+    {
+        _formError = null; _posted = false;
+        if (_subject.Trim().Length < MinSubject) { _formError = $"Subject must be at least {MinSubject} characters."; return; }
+        if (_body.Trim().Length < MinBody) { _formError = $"Description must be at least {MinBody} characters."; return; }
+
+        _busy = true;
+        try
+        {
+            var user = Auth.CurrentUser!;
+            await Firestore.AddDocumentAsync(FirestoreCollections.SupportTickets, new
+            {
+                subject = _subject.Trim(),
+                body = _body.Trim(),
+                authorUid = user.Uid,
+                authorName = user.DisplayName,
+                status = "open",
+                updatedAt = DateTime.UtcNow.ToString("o"),
+            });
+            _subject = _body = ""; _posted = true;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _formError = ex.Message.Contains("UNREACHABLE", OIC) || ex.Message.Contains("timed out", OIC)
+                ? "Couldn't reach the database. Please try again."
+                : "Could not submit your ticket. Please try again.";
+        }
+        finally { _busy = false; }
+    }
+}

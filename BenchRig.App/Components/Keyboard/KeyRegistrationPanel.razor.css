@@ -1,0 +1,9 @@
+.keyboard { display: flex; flex-direction: column; gap: 6px; margin: 1rem 0; }
+.krow { display: flex; gap: 6px; }
+.key {
+    flex: 1; min-width: 0; padding: .7rem .2rem; text-align: center;
+    background: var(--bg-0); border: 1px solid var(--border); border-radius: 6px;
+    font-size: .75rem; font-weight: 600; color: var(--text-1); user-select: none;
+    transition: all .06s ease;
+}
+.key.down { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--text-on-accent); border-color: transparent; box-shadow: 0 0 10px var(--glow); transform: translateY(1px); }

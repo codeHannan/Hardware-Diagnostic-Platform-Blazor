@@ -1,0 +1,66 @@
+@page "/keyboard"
+@using BenchRig.App.Components.Keyboard
+
+<PageTitle>Keyboard Diagnostics | BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Keyboard Diagnostics</h1>
+    <p>Verify key registration, switch health, rollover and ghosting, and typing speed, captured live through the browser's keyboard events. Click a test's panel to give it focus, then start pressing keys.</p>
+</div>
+
+<div class="tabbar">
+    @foreach (var t in _tabs)
+    {
+        <button class="tab @(t.Id == _active ? "on" : "")" @onclick="() => _active = t.Id">
+            <span class="tab-ico">@t.Icon</span> @t.Name
+        </button>
+    }
+</div>
+
+<div class="tab-body" @key="_active">
+    @switch (_active)
+    {
+        case 1:
+            <KeyRegistrationPanel />
+            break;
+        case 2:
+            <KeyDoubleClickPanel />
+            break;
+        case 3:
+            <KeyPollingRatePanel />
+            break;
+        case 4:
+            <TypingTestPanel />
+            break;
+        case 5:
+            <RolloverTestPanel />
+            break;
+        case 6:
+            <GhostingTestPanel />
+            break;
+        case 7:
+            <StuckKeyPanel />
+            break;
+        case 8:
+            <SpecialKeyPanel />
+            break;
+    }
+</div>
+
+@code {
+    private int _active = 1;
+
+    private record Tab(int Id, string Name, string Icon);
+
+    private readonly Tab[] _tabs =
+    [
+        new(1, "Key Registration", "▦"),
+        new(2, "Double Press", "⧉"),
+        new(3, "Polling Rate", "⟳"),
+        new(4, "Typing Speed", "✎"),
+        new(5, "Rollover", "⊞"),
+        new(6, "Ghosting", "◍"),
+        new(7, "Stuck Key", "⚠"),
+        new(8, "Special Keys", "✦"),
+    ];
+}

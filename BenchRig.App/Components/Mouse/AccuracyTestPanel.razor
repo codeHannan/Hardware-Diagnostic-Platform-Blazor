@@ -1,0 +1,105 @@
+@inject IJSRuntime Js
+@inject MouseDiagState State
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Accuracy &amp; Tracking</h3>
+        <div class="test-toolbar">
+            <select class="select" @bind="_targets" disabled="@_active">
+                <option value="10">10 targets</option>
+                <option value="20">20 targets</option>
+                <option value="30">30 targets</option>
+            </select>
+            <button class="btn btn-primary" @onclick="Start" disabled="@_active">@(_done || _active ? "Restart" : "Start")</button>
+        </div>
+    </div>
+    <p class="muted">Click the center of each target as accurately and quickly as you can. We measure your hit rate and average distance from the bullseye.</p>
+
+    <div id="acc-stage" class="acc-stage" @onpointerdown="OnClick">
+        @if (_active)
+        {
+            <div class="acc-target" style="left:@(_cx)px; top:@(_cy)px"></div>
+            <div class="acc-counter">@(_index) / @_targets</div>
+        }
+        else if (_done)
+        {
+            <div class="acc-summary">
+                <div class="pad-big">@_hitPct.ToString("0")%</div>
+                <div class="pad-sub">accuracy · avg @_avgDev.ToString("0") px off center</div>
+            </div>
+        }
+        else
+        {
+            <div class="pad-hint">Press Start. Targets appear one at a time — click each bullseye.</div>
+        }
+    </div>
+
+    @if (_done)
+    {
+        <div class="result-grid">
+            <MetricCard Label="Accuracy" Value="@_hitPct.ToString("0")" Unit="%" />
+            <MetricCard Label="Hits" Value="@($"{_hits}/{_targets}")" />
+            <MetricCard Label="Avg deviation" Value="@_avgDev.ToString("0")" Unit="px" />
+            <MetricCard Label="Avg time/target" Value="@_avgTime.ToString("0")" Unit="ms" />
+        </div>
+    }
+</div>
+
+@code {
+    private int _targets = 10;
+    private int _index;
+    private int _hits;
+    private double _cx, _cy;
+    private double _w = 520, _h = 320;
+    private const double Radius = 24;
+    private bool _active, _done;
+    private double _hitPct, _avgDev, _avgTime;
+    private readonly List<double> _devs = new();
+    private DateTime _shownAt;
+    private readonly List<double> _times = new();
+    private readonly Random _rng = new();
+
+    private async Task Start()
+    {
+        try
+        {
+            var dims = await Js.InvokeAsync<double[]>("eval", "(()=>{const r=document.getElementById('acc-stage').getBoundingClientRect();return [r.width,r.height];})()");
+            if (dims is { Length: 2 } && dims[0] > 0) { _w = dims[0]; _h = dims[1]; }
+        }
+        catch { /* use defaults */ }
+
+        _index = 0; _hits = 0; _devs.Clear(); _times.Clear();
+        _done = false; _active = true;
+        Next();
+    }
+
+    private void Next()
+    {
+        if (_index >= _targets) { Finish(); return; }
+        _index++;
+        double pad = Radius + 6;
+        _cx = pad + _rng.NextDouble() * (_w - 2 * pad);
+        _cy = pad + _rng.NextDouble() * (_h - 2 * pad);
+        _shownAt = DateTime.UtcNow;
+    }
+
+    private void OnClick(PointerEventArgs e)
+    {
+        if (!_active) return;
+        double dx = e.OffsetX - _cx, dy = e.OffsetY - _cy;
+        double dist = Math.Sqrt(dx * dx + dy * dy);
+        _devs.Add(dist);
+        _times.Add((DateTime.UtcNow - _shownAt).TotalMilliseconds);
+        if (dist <= Radius) _hits++;
+        Next();
+    }
+
+    private void Finish()
+    {
+        _active = false; _done = true;
+        _hitPct = _targets > 0 ? _hits * 100.0 / _targets : 0;
+        _avgDev = _devs.Count > 0 ? _devs.Average() : 0;
+        _avgTime = _times.Count > 0 ? _times.Average() : 0;
+        State.SetAccuracy(new AccuracyResult { HitPercent = _hitPct, MissPercent = 100 - _hitPct, AvgDeviationPx = _avgDev });
+    }
+}

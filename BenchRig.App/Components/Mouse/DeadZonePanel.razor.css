@@ -1,0 +1,11 @@
+.dz-stage {
+    position: relative; overflow: hidden;
+    border: 1px dashed var(--border); border-radius: var(--r-md); background: var(--bg-0);
+    min-height: 240px; user-select: none; cursor: crosshair; touch-action: none;
+}
+.dz-cross { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--glow); pointer-events: none; }
+.dz-cross::before, .dz-cross::after { content: ""; position: absolute; background: var(--accent); }
+.dz-cross::before { left: 5px; top: -6px; width: 2px; height: 22px; }
+.dz-cross::after { top: 5px; left: -6px; height: 2px; width: 22px; }
+.dz-overlay { position: absolute; inset: 0; display: grid; place-items: center; color: var(--cream); font-weight: 700; background: var(--veil-soft); pointer-events: none; }
+.dz-hint { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-2); font-size: .92rem; pointer-events: none; }

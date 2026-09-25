@@ -1,0 +1,101 @@
+@implements IDisposable
+
+<div class="card">
+    <div class="panel-head">
+        <h3>Jitter Click Test</h3>
+        <div class="test-toolbar">
+            <select class="select" @bind="_durationSec" disabled="@_active">
+                <option value="5">5 seconds</option>
+                <option value="10">10 seconds</option>
+            </select>
+        </div>
+    </div>
+    <p class="muted">Jitter clicking trades steadiness for speed. This measures your jitter CPS and how consistent your click intervals are.</p>
+
+    <div class="click-pad @(_active ? "armed" : "")" @onpointerdown="OnClick" @oncontextmenu:preventDefault="true" @oncontextmenu="Noop">
+        @if (_active)
+        {
+            <div><div class="pad-big">@_cps.ToString("0.0")</div><div class="pad-sub">CPS · @_remaining.ToString("0.0")s left</div></div>
+        }
+        else if (_done)
+        {
+            <div><div class="pad-big">@_cps.ToString("0.0")</div><div class="pad-sub">@(_cooldown ? "Ready again in a moment…" : "jitter CPS · click to retry")</div></div>
+        }
+        else
+        {
+            <div class="pad-hint">Use your jitter technique and click as fast as you can.</div>
+        }
+    </div>
+
+    @if (_done)
+    {
+        <div class="result-grid">
+            <MetricCard Label="Jitter CPS" Value="@_cps.ToString("0.0")" />
+            <MetricCard Label="Irregularity" Value="@_irregularity.ToString("0")" Unit="ms σ" />
+            <MetricCard Label="Consistency" Value="@Consistency" />
+        </div>
+    }
+</div>
+
+@code {
+    private int _durationSec = 5;
+    private int _clicks;
+    private double _cps;
+    private double _remaining;
+    private double _irregularity;
+    private bool _active, _done, _cooldown;
+    private DateTime _start;
+    private readonly List<double> _times = new();
+    private System.Threading.Timer? _timer;
+    private System.Threading.Timer? _cooldownTimer;
+
+    private string Consistency => _irregularity switch
+    {
+        < 20 => "Very steady",
+        < 40 => "Steady",
+        < 70 => "Typical jitter",
+        _ => "Erratic",
+    };
+
+    private void OnClick(PointerEventArgs e)
+    {
+        var nowMs = (DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+        if (_active) { _clicks++; _times.Add(nowMs); var el = (DateTime.UtcNow - _start).TotalSeconds; _cps = el > 0 ? _clicks / Math.Min(el, _durationSec) : 0; return; }
+        if (_cooldown) return;   // short lock-out so fast clicking can't instantly restart
+        _done = false; _clicks = 1; _cps = 0; _irregularity = 0; _times.Clear(); _times.Add(nowMs);
+        _remaining = _durationSec; _active = true; _start = DateTime.UtcNow;
+        _timer = new System.Threading.Timer(_ => Tick(), null, 100, 100);
+    }
+
+    private void Tick()
+    {
+        var el = (DateTime.UtcNow - _start).TotalSeconds;
+        _remaining = Math.Max(0, _durationSec - el);
+        if (el >= _durationSec) Finish(); else InvokeAsync(StateHasChanged);
+    }
+
+    private void Finish()
+    {
+        _timer?.Dispose(); _timer = null;
+        _cps = _clicks / (double)_durationSec;
+        _irregularity = StdDevOfIntervals();
+        _active = false; _done = true;
+        _cooldown = true;
+        _cooldownTimer?.Dispose();
+        _cooldownTimer = new System.Threading.Timer(_ => { _cooldown = false; InvokeAsync(StateHasChanged); }, null, 2000, System.Threading.Timeout.Infinite);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private double StdDevOfIntervals()
+    {
+        if (_times.Count < 3) return 0;
+        var intervals = new List<double>(_times.Count - 1);
+        for (int i = 1; i < _times.Count; i++) intervals.Add(_times[i] - _times[i - 1]);
+        double mean = intervals.Average();
+        return Math.Sqrt(intervals.Sum(x => (x - mean) * (x - mean)) / intervals.Count);
+    }
+
+    private void Noop() { }
+
+    public void Dispose() { _timer?.Dispose(); _cooldownTimer?.Dispose(); }
+}

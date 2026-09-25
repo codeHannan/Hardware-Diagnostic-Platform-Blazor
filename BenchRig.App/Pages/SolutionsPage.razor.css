@@ -1,0 +1,72 @@
+/* ── Toolbar ── */
+.kb-toolbar { display: flex; gap: .6rem; margin-bottom: 1rem; align-items: stretch; }
+.kb-search { position: relative; flex: 1; }
+.kb-search .input { width: 100%; padding-right: 2rem; }
+.kb-search-clear {
+    position: absolute; right: .5rem; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--text-2); font-size: 1.2rem; line-height: 1;
+    cursor: pointer; padding: 0 .2rem;
+}
+.kb-search-clear:hover { color: var(--cream); }
+.kb-sort { width: auto; }
+
+/* ── Chips (categories + tags) ── */
+.kb-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; align-items: center; }
+.kb-chip {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .32rem .75rem; border-radius: var(--r-pill); border: 1px solid var(--border);
+    background: var(--surface-1); color: var(--text-1); font-size: .8rem; font-weight: 600;
+    cursor: pointer; transition: all .12s ease;
+}
+.kb-chip:hover { border-color: var(--accent); color: var(--cream); }
+.kb-chip.on { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--text-on-accent); border-color: transparent; }
+.kb-chip.sm { font-size: .74rem; padding: .26rem .6rem; }
+.kb-n { font-size: .72rem; opacity: .7; font-family: var(--mono); }
+.kb-chip.on .kb-n { opacity: .85; }
+.kb-tagrow { margin-top: -.4rem; }
+.kb-tagrow-label { font-size: .76rem; color: var(--text-2); margin-right: .2rem; }
+
+/* ── Count row ── */
+.kb-count-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .6rem; }
+.kb-count { font-size: .8rem; margin: 0; }
+.kb-reset { background: none; border: none; color: var(--accent); font-size: .8rem; font-weight: 600; cursor: pointer; }
+.kb-reset:hover { color: var(--cream); text-decoration: underline; }
+
+/* ── Cards ── */
+.kb-card {
+    text-align: left; cursor: pointer; font: inherit; color: inherit;
+    display: flex; flex-direction: column;
+    padding: 1.2rem 1.4rem; border-radius: var(--r-md);
+    background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
+    border: 1px solid var(--border); transition: transform .12s ease, border-color .12s ease;
+}
+.kb-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.kb-card h3 { margin: .6rem 0 .3rem; }
+.kb-card-preview { flex: 1; margin: 0 0 .8rem; font-size: .88rem; line-height: 1.5; }
+.kb-card-foot { display: flex; flex-wrap: wrap; gap: .4rem; font-size: .76rem; }
+
+/* ── Article detail ── */
+.kb-article { margin-top: 1rem; }
+.kb-art-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.kb-article h1 { margin: .5rem 0 .2rem; }
+.kb-meta { font-size: .82rem; margin: 0 0 .6rem; }
+.kb-back { margin-bottom: .4rem; }
+.kb-copy {
+    background: var(--surface-1); border: 1px solid var(--border); color: var(--text-1);
+    font-size: .78rem; font-weight: 600; padding: .35rem .7rem; border-radius: var(--r-pill);
+    cursor: pointer; transition: all .12s ease; white-space: nowrap;
+}
+.kb-copy:hover { border-color: var(--accent); color: var(--cream); }
+.kb-copy.ok { color: var(--ok); border-color: var(--ok); }
+.kb-tag { cursor: pointer; border: none; font: inherit; font-family: var(--mono); transition: all .12s ease; }
+.kb-tag:hover { background: var(--accent); color: var(--text-on-accent); }
+
+/* ── States ── */
+.kb-empty, .kb-notfound { text-align: center; padding: 2rem; }
+.kb-empty .btn, .kb-notfound .btn { margin-top: 1rem; }
+.kb-notfound h2 { margin-bottom: .4rem; }
+
+@media (max-width: 700px) {
+    .kb-toolbar { flex-wrap: wrap; }
+    .kb-search { flex-basis: 100%; }
+}

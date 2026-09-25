@@ -1,0 +1,28 @@
+@page "/network"
+@using BenchRig.App.Components.Network
+@inject NetworkTestOrchestrator Orch
+
+<PageTitle>Network Diagnostics | BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Network Diagnostics</h1>
+    <p>Real download, upload, ping, and jitter measured against Cloudflare's global edge network. Press GO to run a full test.</p>
+</div>
+
+<SpeedTestPanel />
+
+<div style="height:1.2rem"></div>
+
+<div class="page-grid">
+    <NetworkInfoPanel />
+    <LatencyPanel />
+    <ServerMapPanel />
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Orch.LoadNetworkInfoAsync();
+        await Orch.LoadServersAsync();
+    }
+}

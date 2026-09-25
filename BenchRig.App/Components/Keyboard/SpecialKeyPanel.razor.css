@@ -1,0 +1,10 @@
+.sk-group { margin-bottom: 1rem; }
+.sk-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent-strong); font-weight: 700; margin-bottom: .5rem; }
+.sk-keys { display: flex; flex-wrap: wrap; gap: .4rem; }
+.sk-chip {
+    font-size: .8rem; font-weight: 600; padding: .35rem .65rem; border-radius: var(--r-sm);
+    background: var(--bg-0); border: 1px solid var(--border); color: var(--text-1); user-select: none;
+    transition: all .08s ease;
+}
+.sk-chip.done { background: rgba(111,191,115,.16); border-color: var(--ok); color: var(--ok); }
+.sk-chip.active { box-shadow: 0 0 0 2px var(--accent); color: var(--cream); }

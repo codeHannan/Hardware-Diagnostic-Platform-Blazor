@@ -1,0 +1,54 @@
+<div class="card">
+    <div class="panel-head">
+        <h3>Encoder (Scroll Wheel) Test</h3>
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+    </div>
+    <p class="muted">Scroll up and down over this area. A healthy encoder registers every notch in the direction you turn it; unexpected reversals indicate a worn scroll wheel.</p>
+
+    <div class="scroll-stage" @onwheel="OnWheel" @onwheel:preventDefault="true">
+        <div class="scroll-track">
+            <div class="scroll-thumb" style="top:@(_thumb)%"></div>
+        </div>
+        <div class="scroll-dir">
+            <span class="@(_lastDir < 0 ? "on" : "")">▲ up</span>
+            <span class="@(_lastDir > 0 ? "on" : "")">▼ down</span>
+        </div>
+        <p class="bt-hint">Scroll inside this box</p>
+    </div>
+
+    <div class="result-grid">
+        <MetricCard Label="Up notches" Value="@_up.ToString()" />
+        <MetricCard Label="Down notches" Value="@_down.ToString()" />
+        <MetricCard Label="Total" Value="@((_up + _down).ToString())" />
+        <MetricCard Label="Reversals" Value="@_reversals.ToString()" Sub="@(_reversals == 0 ? "clean" : "check wheel")" />
+    </div>
+</div>
+
+@code {
+    private int _up, _down, _reversals;
+    private int _lastDir;          // -1 up, +1 down
+    private int _consecutive;      // consecutive notches in the same direction
+    private double _thumb = 50;
+
+    private void OnWheel(WheelEventArgs e)
+    {
+        int dir = e.DeltaY > 0 ? 1 : -1;
+        if (dir > 0) _down++; else _up++;
+        _thumb = Math.Clamp(_thumb + dir * 6, 0, 100);
+
+        if (_lastDir != 0 && dir != _lastDir)
+        {
+            // a reversal after a run of >=2 same-direction notches is likely intentional;
+            // a flip after a single notch in a sustained scroll suggests encoder bounce
+            if (_consecutive == 1) _reversals++;
+            _consecutive = 1;
+        }
+        else
+        {
+            _consecutive++;
+        }
+        _lastDir = dir;
+    }
+
+    private void Reset() { _up = _down = _reversals = _lastDir = _consecutive = 0; _thumb = 50; }
+}

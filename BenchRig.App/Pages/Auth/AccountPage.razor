@@ -1,0 +1,220 @@
+@page "/account"
+@inject AuthStateContainer Auth
+@inject AuthService AuthSvc
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Account Settings | BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Account Settings</h1>
+    <p>Manage your profile, password, and account.</p>
+</div>
+
+@if (!Auth.IsInitialized)
+{
+    <LoadingSpinner Text="Loading account…" />
+}
+else if (!Auth.IsLoggedIn)
+{
+    <div class="card"><p class="muted">Please <a href="@AppRoutes.Login">sign in</a> to manage your account.</p></div>
+}
+else
+{
+    var user = Auth.CurrentUser!;
+    <div class="acc-grid">
+        <!-- ── Profile ── -->
+        <div class="card acc-card">
+            <div class="acc-head">
+                <span class="acc-avatar">@Initials(user.DisplayName)</span>
+                <div class="acc-id">
+                    <div class="acc-name-row">
+                        <span class="acc-name">@user.DisplayName</span>
+                        @if (user.IsAdmin) { <span class="role-pill admin">Admin</span> }
+                    </div>
+                    <span class="muted acc-email">@user.Email</span>
+                    <span class="muted acc-prov">Signed in with @ProviderLabel(user.ProviderId)</span>
+                </div>
+            </div>
+
+            <h3 class="acc-sec">Display name</h3>
+            <label>Username</label>
+            <input class="input" @bind="_name" maxlength="100" placeholder="Your name" />
+            @if (_nameMsg is { } nm) { <p class="acc-msg @(_nameOk ? "ok" : "bad")">@nm</p> }
+            <button class="btn btn-primary acc-btn" disabled="@(_nameBusy || !NameChanged)" @onclick="SaveName">
+                @(_nameBusy ? "Saving…" : "Save name")
+            </button>
+        </div>
+
+        <!-- ── Password ── -->
+        <div class="card acc-card">
+            <h3 class="acc-sec">Password</h3>
+            @if (user.IsPasswordProvider)
+            {
+                <label>Current password</label>
+                <input class="input" type="password" @bind="_curPwd" placeholder="••••••••" />
+
+                <label>New password</label>
+                <input class="input" type="password" @bind="_newPwd" placeholder="At least 6 characters" />
+
+                <label>Confirm new password</label>
+                <input class="input" type="password" @bind="_confirmPwd" placeholder="Re-enter new password" />
+
+                @if (_pwdMsg is { } pm) { <p class="acc-msg @(_pwdOk ? "ok" : "bad")">@pm</p> }
+                <button class="btn btn-primary acc-btn" disabled="@_pwdBusy" @onclick="SavePassword">
+                    @(_pwdBusy ? "Updating…" : "Update password")
+                </button>
+            }
+            else
+            {
+                <p class="muted">You sign in with @ProviderLabel(user.ProviderId), so your password is
+                    managed there. There's nothing to change here.</p>
+            }
+        </div>
+
+        <!-- ── Danger zone ── -->
+        <div class="card acc-card acc-danger">
+            <h3 class="acc-sec bad-text">Delete account</h3>
+            <p class="muted">This permanently deletes your account and sign-in. This action can't be undone.
+                Your posts and tickets are not automatically removed.</p>
+
+            @if (!_confirmDelete)
+            {
+                <button class="btn acc-del" @onclick="() => _confirmDelete = true">Delete my account</button>
+            }
+            else
+            {
+                @if (user.IsPasswordProvider)
+                {
+                    <label>Confirm your password to continue</label>
+                    <input class="input" type="password" @bind="_delPwd" placeholder="••••••••" />
+                }
+                else
+                {
+                    <p class="muted">You'll be asked to re-confirm with @ProviderLabel(user.ProviderId).</p>
+                }
+                @if (_delMsg is { } dm) { <p class="acc-msg bad">@dm</p> }
+                <div class="acc-del-actions">
+                    <button class="btn acc-del" disabled="@_delBusy" @onclick="DeleteAccount">
+                        @(_delBusy ? "Deleting…" : "Yes, delete permanently")
+                    </button>
+                    <button class="btn btn-ghost" disabled="@_delBusy" @onclick="CancelDelete">Cancel</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private string _name = "";
+
+    private string _curPwd = "";
+    private string _newPwd = "";
+    private string _confirmPwd = "";
+
+    private string _delPwd = "";
+    private bool _confirmDelete;
+
+    private bool _nameBusy, _pwdBusy, _delBusy;
+    private bool _nameOk, _pwdOk;
+    private string? _nameMsg, _pwdMsg, _delMsg;
+
+    protected override void OnInitialized()
+    {
+        Auth.OnChange += StateHasChanged;
+        _name = Auth.CurrentUser?.DisplayName ?? "";
+    }
+
+    public void Dispose() => Auth.OnChange -= StateHasChanged;
+
+    private bool NameChanged =>
+        !string.IsNullOrWhiteSpace(_name) &&
+        !string.Equals(_name.Trim(), Auth.CurrentUser?.DisplayName, StringComparison.Ordinal);
+
+    private async Task SaveName()
+    {
+        var name = _name.Trim();
+        if (name.Length < 2) { SetName("Name must be at least 2 characters.", false); return; }
+        _nameBusy = true; _nameMsg = null;
+        try
+        {
+            await AuthSvc.UpdateDisplayNameAsync(name);
+            SetName("Display name updated.", true);
+        }
+        catch { SetName("Couldn't update your name. Please try again.", false); }
+        finally { _nameBusy = false; }
+    }
+
+    private async Task SavePassword()
+    {
+        _pwdMsg = null;
+        if (string.IsNullOrEmpty(_curPwd)) { SetPwd("Enter your current password.", false); return; }
+        if (_newPwd.Length < 6) { SetPwd("New password must be at least 6 characters.", false); return; }
+        if (_newPwd != _confirmPwd) { SetPwd("New passwords don't match.", false); return; }
+
+        _pwdBusy = true;
+        try
+        {
+            await AuthSvc.ChangePasswordAsync(_curPwd, _newPwd);
+            _curPwd = _newPwd = _confirmPwd = "";
+            SetPwd("Password updated.", true);
+        }
+        catch (Exception ex) { SetPwd(FriendlyPwd(ex), false); }
+        finally { _pwdBusy = false; }
+    }
+
+    private void CancelDelete() { _confirmDelete = false; _delPwd = ""; _delMsg = null; }
+
+    private async Task DeleteAccount()
+    {
+        _delMsg = null;
+        var user = Auth.CurrentUser!;
+        if (user.IsPasswordProvider && string.IsNullOrEmpty(_delPwd))
+        {
+            _delMsg = "Enter your password to confirm.";
+            return;
+        }
+        _delBusy = true;
+        try
+        {
+            await AuthSvc.DeleteAccountAsync(user.IsPasswordProvider ? _delPwd : null);
+            Nav.NavigateTo(AppRoutes.Home, forceLoad: false);
+        }
+        catch (Exception ex) { _delMsg = FriendlyPwd(ex); }
+        finally { _delBusy = false; }
+    }
+
+    private void SetName(string msg, bool ok) { _nameMsg = msg; _nameOk = ok; }
+    private void SetPwd(string msg, bool ok) { _pwdMsg = msg; _pwdOk = ok; }
+
+    private static string FriendlyPwd(Exception ex)
+    {
+        var m = ex.Message;
+        if (m.Contains("wrong-password", StringComparison.OrdinalIgnoreCase) ||
+            m.Contains("invalid-credential", StringComparison.OrdinalIgnoreCase))
+            return "Incorrect password.";
+        if (m.Contains("too-many-requests", StringComparison.OrdinalIgnoreCase))
+            return "Too many attempts. Please wait a moment and try again.";
+        if (m.Contains("requires-recent-login", StringComparison.OrdinalIgnoreCase))
+            return "Please sign in again, then retry.";
+        if (m.Contains("popup-closed", StringComparison.OrdinalIgnoreCase) ||
+            m.Contains("cancelled", StringComparison.OrdinalIgnoreCase))
+            return "Re-authentication was cancelled.";
+        return "Something went wrong. Please try again.";
+    }
+
+    private static string ProviderLabel(string providerId) => providerId switch
+    {
+        "google.com" => "Google",
+        "github.com" => "GitHub",
+        "password" => "email & password",
+        _ => providerId,
+    };
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[1][0]}".ToUpper() : name[..1].ToUpper();
+    }
+}

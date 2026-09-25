@@ -1,0 +1,207 @@
+@page "/admin/tickets"
+@using BenchRig.App.Components.Support
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+@implements IDisposable
+
+<PageTitle>Admin · Tickets - BenchRig</PageTitle>
+
+@if (!Auth.IsInitialized)
+{
+    <LoadingSpinner Text="Checking access..." />
+}
+else if (!Auth.IsAdmin)
+{
+    <div class="card"><h2>Access denied</h2></div>
+}
+else
+{
+    <div class="page-intro">
+        <h1>Support Tickets</h1>
+        <p>Triage user tickets, post responses, and update status.</p>
+    </div>
+
+    @if (_loading)
+    {
+        <LoadingSpinner Text="Loading tickets..." />
+    }
+    else if (_error is { } err)
+    {
+        <ConnectionError Message="@err" OnRetry="Load" />
+    }
+    else
+    {
+        <div class="atk-stats">
+            @foreach (var s in StatusOrder)
+            {
+                <button class="atk-stat @(_statusFilter == s ? "on" : "")" @onclick="() => SetStatusFilter(s)">
+                    <span class="atk-stat-n">@CountOf(s)</span>
+                    <span class="atk-stat-l">@TicketDetail.StatusLabel(s)</span>
+                </button>
+            }
+            <button class="atk-stat @(_statusFilter == "all" ? "on" : "")" @onclick='() => SetStatusFilter("all")'>
+                <span class="atk-stat-n">@_tickets.Count</span>
+                <span class="atk-stat-l">all</span>
+            </button>
+        </div>
+
+        <div class="atk">
+            <div class="atk-list">
+                <div class="atk-toolbar">
+                    <input class="input" @bind="_search" @bind:event="oninput" placeholder="Search subject, body, or user…" />
+                    <button class="btn btn-ghost btn-sm" @onclick="Load">↻</button>
+                </div>
+
+                @if (_tickets.Count == 0)
+                {
+                    <div class="card"><p class="muted">No tickets submitted yet.</p></div>
+                }
+                else if (Filtered.Count == 0)
+                {
+                    <div class="card"><p class="muted">No tickets match your filters.</p></div>
+                }
+                else
+                {
+                    @foreach (var t in Filtered)
+                    {
+                        <button class="atk-item @(_selectedId == t.Id ? "on" : "")" @onclick="() => _selectedId = t.Id">
+                            <div class="atk-item-top">
+                                <span class="atk-subject">@t.Subject</span>
+                                <span class="badge @TicketDetail.StatusClass(t.Status)">@TicketDetail.StatusLabel(t.Status)</span>
+                            </div>
+                            <div class="atk-item-meta">
+                                <span class="muted">@t.AuthorName · @TimeAgo.From(t.CreatedAt ?? DateTime.UtcNow)@(RespCount(t.Id) > 0 ? $" · 💬 {RespCount(t.Id)}" : "")</span>
+                            </div>
+                        </button>
+                    }
+                }
+            </div>
+
+            <div class="atk-detail">
+                @if (Selected is { } sel)
+                {
+                    <div class="card">
+                        <div class="atk-detail-head">
+                            <div>
+                                <h3>@sel.Subject</h3>
+                                <p class="muted atk-detail-sub">from @sel.AuthorName · @TimeAgo.From(sel.CreatedAt ?? DateTime.UtcNow)</p>
+                            </div>
+                            <span class="badge @TicketDetail.StatusClass(sel.Status)">@TicketDetail.StatusLabel(sel.Status)</span>
+                        </div>
+
+                        <div class="atk-controls">
+                            <label>Status
+                                <select class="select" value="@sel.Status" @onchange="(e) => SetStatus(sel.Id, e)">
+                                    <option value="open">open</option>
+                                    <option value="in_progress">in progress</option>
+                                    <option value="resolved">resolved</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <TicketDetail TicketId="@sel.Id" Body="@sel.Body" Status="@sel.Status" CanRespond="true" AsStaff="true" OnChanged="Load" @key="sel.Id" />
+                    </div>
+                }
+                else
+                {
+                    <div class="card atk-empty"><p class="muted">Select a ticket to view its details and respond.</p></div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private sealed record TicketDto
+    {
+        public string Id { get; init; } = "";
+        public string Subject { get; init; } = "";
+        public string Body { get; init; } = "";
+        public string AuthorName { get; init; } = "";
+        public string Status { get; init; } = "open";
+        public DateTime? CreatedAt { get; init; }
+    }
+
+    private List<TicketDto> _tickets = new();
+    private Dictionary<string, int> _respCounts = new();
+    private string? _selectedId;
+    private bool _loading = true;
+    private string? _error;
+
+    private string _search = "";
+    private string _statusFilter = "all";
+
+    private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
+    private static readonly string[] StatusOrder = ["open", "in_progress", "resolved"];
+
+    private TicketDto? Selected => _selectedId is null ? null : _tickets.FirstOrDefault(t => t.Id == _selectedId);
+
+    protected override void OnInitialized() => Auth.OnChange += StateHasChanged;
+    public void Dispose() => Auth.OnChange -= StateHasChanged;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            _tickets = await Firestore.QueryCollectionAsync<TicketDto>(
+                FirestoreCollections.SupportTickets,
+                new QueryFilter { OrderByField = "createdAt", OrderDir = "desc" });
+            await EnrichAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message.Contains("UNREACHABLE", OIC) || ex.Message.Contains("timed out", OIC)
+                ? "The Firestore database didn't respond in time."
+                : "Couldn't load tickets from Firestore.";
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task EnrichAsync()
+    {
+        if (_tickets.Count == 0) { _respCounts = new(); return; }
+        try
+        {
+            var pairs = await Task.WhenAll(_tickets.Select(async t =>
+                (t.Id, Count: await Firestore.CountCollectionAsync(FirestoreCollections.ResponsesOf(t.Id)))));
+            _respCounts = pairs.ToDictionary(p => p.Id, p => p.Count);
+        }
+        catch { /* leave counts empty */ }
+    }
+
+    private int RespCount(string id) => _respCounts.TryGetValue(id, out var c) ? c : 0;
+
+    private int CountOf(string s) => _tickets.Count(t => t.Status == s);
+    private void SetStatusFilter(string s) => _statusFilter = s;
+
+    private List<TicketDto> Filtered
+    {
+        get
+        {
+            IEnumerable<TicketDto> q = _tickets;
+            if (_statusFilter != "all") q = q.Where(t => t.Status == _statusFilter);
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim();
+                q = q.Where(t => t.Subject.Contains(s, OIC) || t.Body.Contains(s, OIC) || t.AuthorName.Contains(s, OIC));
+            }
+            return q.ToList();
+        }
+    }
+
+    private async Task SetStatus(string id, ChangeEventArgs e)
+        => await UpdateField(id, new { status = e.Value?.ToString() ?? "open" });
+
+    private async Task UpdateField(string id, object data)
+    {
+        try
+        {
+            await Firestore.UpdateDocumentAsync(FirestoreCollections.Ticket(id), data);
+            await Load();          // refresh; Selected is recomputed from _selectedId
+        }
+        catch { /* surfaced on next load */ }
+    }
+}

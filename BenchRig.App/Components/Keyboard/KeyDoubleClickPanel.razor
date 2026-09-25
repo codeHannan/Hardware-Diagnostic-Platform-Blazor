@@ -1,0 +1,98 @@
+<div class="card">
+    <div class="panel-head">
+        <h3>Double Press (Chatter) Test</h3>
+        <div class="test-toolbar">
+            <label style="margin:0">Threshold</label>
+            <select class="select" @bind="_thresholdMs">
+                <option value="40">40 ms</option>
+                <option value="60">60 ms</option>
+                <option value="80">80 ms</option>
+            </select>
+            <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+        </div>
+    </div>
+
+    <div class="kbd-focusbar @(_focused ? "active" : "")">
+        <span><span class="kbd-dot"></span> @(_focused ? "Type normally — one press per key" : "Click below to start")</span>
+        <span class="muted">@_total presses · @_chatterEvents chatter</span>
+    </div>
+
+    <div class="kbd-capture click-pad" tabindex="0" @ref="_el" style="min-height:200px"
+         @onkeydown="OnDown" @onkeyup="OnUp" @onkeydown:preventDefault="true"
+         @onfocus="() => _focused = true" @onblur="() => _focused = false" @onclick="Focus">
+        <div>
+            <div class="pad-big @(_lastChatter ? "bad" : "")">@(_lastInterval > 0 ? _lastInterval.ToString("0") + " ms" : "—")</div>
+            <div class="pad-sub">interval between presses of the same key</div>
+            @if (_lastChatter)
+            {
+                <div class="badge badge-bad" style="margin-top:.6rem">Chatter on @_lastKey!</div>
+            }
+        </div>
+    </div>
+    <p class="muted" style="margin-top:.8rem">Tap each key deliberately, once. A key that fires twice within @_thresholdMs ms (excluding OS key-repeat) is chattering — a failing switch.</p>
+
+    @if (_chatter.Count > 0)
+    {
+        <div class="chip-list">
+            @foreach (var kv in _chatter.OrderByDescending(k => k.Value))
+            {
+                <span class="keychip bad">@kv.Key × @kv.Value</span>
+            }
+        </div>
+    }
+
+    <div class="result-grid">
+        <MetricCard Label="Presses" Value="@_total.ToString()" />
+        <MetricCard Label="Chatter events" Value="@_chatterEvents.ToString()" />
+        <MetricCard Label="Verdict" Value="@Verdict" />
+    </div>
+</div>
+
+@code {
+    private ElementReference _el;
+    private int _thresholdMs = 60;
+    private bool _focused, _autofocused;
+    private int _total, _chatterEvents;
+    private double _lastInterval;
+    private bool _lastChatter;
+    private string _lastKey = "";
+    private readonly Dictionary<string, double> _lastDown = new();
+    private readonly Dictionary<string, int> _chatter = new();
+
+    private string Verdict => _total < 10 ? "—" : _chatterEvents == 0 ? "Healthy" : _chatterEvents <= 2 ? "Suspect" : "Faulty";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    { if (firstRender && !_autofocused) { _autofocused = true; try { await _el.FocusAsync(); } catch { } } }
+
+    private async Task Focus() { try { await _el.FocusAsync(); } catch { } }
+
+    private void OnDown(KeyboardEventArgs e)
+    {
+        if (e.Repeat || string.IsNullOrEmpty(e.Code)) return; // ignore OS auto-repeat
+        _total++;
+        _lastChatter = false;
+        double now = NowMs();
+        if (_lastDown.TryGetValue(e.Code, out var prev))
+        {
+            _lastInterval = now - prev;
+            if (_lastInterval < _thresholdMs)
+            {
+                _lastChatter = true;
+                _lastKey = e.Code;
+                _chatterEvents++;
+                _chatter[e.Code] = _chatter.GetValueOrDefault(e.Code) + 1;
+            }
+        }
+        _lastDown[e.Code] = now;
+    }
+
+    private void OnUp(KeyboardEventArgs e) { }
+
+    private static double NowMs() => (DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+
+    private void Reset()
+    {
+        _total = _chatterEvents = 0; _lastInterval = 0; _lastChatter = false; _lastKey = "";
+        _lastDown.Clear(); _chatter.Clear();
+    }
+}

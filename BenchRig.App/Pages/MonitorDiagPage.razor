@@ -1,0 +1,134 @@
+@page "/monitor"
+@using BenchRig.App.Components.Monitor
+@inject MonitorTestOrchestrator Orch
+@inject MonitorDiagState State
+
+<PageTitle>Monitor Diagnostics | BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Monitor Diagnostics</h1>
+    <p>Fullscreen test patterns for panel quality plus live refresh-rate analysis. Launch a test, inspect your screen, and press Esc (or Exit) to return.</p>
+</div>
+
+<div class="tabbar">
+    @foreach (var t in _tabs)
+    {
+        <button class="tab @(t.Id == _active ? "on" : "")" @onclick="() => _active = t.Id">
+            <span class="tab-ico">@t.Icon</span> @t.Name
+        </button>
+    }
+</div>
+
+<div class="tab-body" @key="_active">
+    @{
+        var tab = _tabs.First(t => t.Id == _active);
+    }
+    <div class="card">
+        <div class="panel-head"><h3>@tab.Name</h3></div>
+        <p class="muted">@tab.Desc</p>
+        <ul class="mon-tips">
+            @foreach (var tip in tab.Tips)
+            {
+                <li>@tip</li>
+            }
+        </ul>
+
+        @if (_active == 9)
+        {
+            <div class="test-toolbar" style="margin:1rem 0">
+                <label style="margin:0">Expected</label>
+                <select class="select" style="width:auto" @bind="_expectedHz">
+                    <option value="60">60 Hz</option>
+                    <option value="75">75 Hz</option>
+                    <option value="120">120 Hz</option>
+                    <option value="144">144 Hz</option>
+                    <option value="165">165 Hz</option>
+                    <option value="240">240 Hz</option>
+                </select>
+                <button class="btn btn-primary" disabled="@_measuring" @onclick="MeasureRefresh">
+                    @(_measuring ? "Measuring…" : "Measure refresh rate")
+                </button>
+            </div>
+            @if (_stats is { Frames: > 0 } s)
+            {
+                <div class="result-grid">
+                    <MetricCard Label="Measured" Value="@s.Hz.ToString("0.0")" Unit="Hz" />
+                    <MetricCard Label="Range" Value="@($"{s.MinHz:0}-{s.MaxHz:0}")" Unit="Hz" />
+                    <MetricCard Label="Frame jitter" Value="@s.JitterMs.ToString("0.0")" Unit="ms" />
+                    <MetricCard Label="Dropped" Value="@s.Dropped.ToString()" Sub="@($"of {s.Frames} frames")" />
+                    <MetricCard Label="Compliance" Value="@Compliance(s.Hz)" />
+                </div>
+            }
+            <button class="btn" style="margin-top:1rem" @onclick="() => Launch(MonitorMode.RefreshBars)">Launch motion smoothness pattern</button>
+        }
+        else
+        {
+            <button class="btn btn-primary" style="margin-top:.5rem" @onclick="() => Launch(tab.Mode)">Launch fullscreen test</button>
+        }
+    </div>
+</div>
+
+@if (_stageMode is not null)
+{
+    <MonitorStage Mode="_stageMode.Value" Title="@_stageTitle" OnExit="CloseStage" />
+}
+
+@code {
+    private int _active = 1;
+    private MonitorMode? _stageMode;
+    private string _stageTitle = "";
+    private int _expectedHz = 60;
+    private bool _measuring;
+    private RefreshStats? _stats;
+
+    private record Tab(int Id, string Name, string Icon, MonitorMode Mode, string Desc, string[] Tips);
+
+    private readonly Tab[] _tabs =
+    [
+        new(1, "Dead Pixel", "▦", MonitorMode.DeadPixel, "Cycle solid colors fullscreen to find stuck (always-on) or dead (always-off) pixels.",
+            ["Use Black to find bright stuck pixels, White to find dark dead ones.", "Cycle R/G/B to catch single sub-pixel faults.", "Arrow keys or the buttons change color."]),
+        new(2, "Uniformity", "▤", MonitorMode.Uniformity, "Solid mid-tones reveal brightness/color uniformity issues across the panel.",
+            ["Look for darker corners or edges, or tinted patches.", "The 3x3 grid helps compare zones.", "Best judged on 50% gray and white."]),
+        new(3, "Color & Gradients", "◧", MonitorMode.Gradient, "Smooth gradients expose colour banding and posterization.",
+            ["A good panel shows a smooth ramp with no visible steps.", "Check grayscale and each primary.", "Banding often means 6-bit + dithering."]),
+        new(4, "Contrast Ratio", "◐", MonitorMode.Contrast, "Near-black and near-white steps test shadow/highlight detail (black & white crush).",
+            ["You should distinguish every adjacent step.", "Lost dark steps = black crush; lost bright steps = white clipping.", "Adjust brightness/contrast until all are visible."]),
+        new(5, "Sharpness & Text", "✎", MonitorMode.Sharpness, "A 1-pixel checkerboard and text samples reveal softness or bad scaling.",
+            ["The checker should look crisp, not shimmering or gray.", "Text should be sharp at every size.", "Set the OS to 100% scale and native resolution."]),
+        new(6, "Viewing Angles", "◑", MonitorMode.ViewingAngle, "A uniform field + gradient to judge colour/brightness shift off-axis.",
+            ["Move your head side to side and up/down.", "TN panels shift a lot; IPS/VA much less.", "Watch the corners for colour change."]),
+        new(7, "Backlight Bleed", "◼", MonitorMode.Backlight, "Pure black in a dark room shows backlight bleed, clouding, and IPS glow.",
+            ["Dim the lights for an accurate result.", "Look for lighter glow at edges/corners.", "Some IPS glow is normal at an angle."]),
+        new(8, "Ghosting & Motion", "↝", MonitorMode.Ghosting, "Moving blocks on light/dark rows reveal ghosting and motion blur.",
+            ["Track a block with your eyes. Trails behind it are ghosting.", "Raise the speed to stress the panel.", "Enable overdrive in your monitor OSD to compare."]),
+        new(9, "Refresh Rate", "⟳", MonitorMode.RefreshBars, "Measure the actual refresh rate your browser renders at, with frame jitter and dropped frames.",
+            ["Pick your panel's rated rate, then measure.", "Measured should match within ~1 Hz.", "Use the motion pattern to spot tearing/stutter."]),
+        new(10, "Gamma", "◢", MonitorMode.Gamma, "Match the 1-pixel line blocks to the solid patches to read your display gamma.",
+            ["Step back from the screen.", "The patch that blends with the lines beside it is your gamma.", "Most content targets 2.2."]),
+        new(11, "Response Time", "⚡", MonitorMode.ResponseTime, "A fast, sharp-edged moving box stresses pixel transitions (G2G) and overdrive.",
+            ["Trails/smearing indicate slow response.", "A faint inverted trail means overdrive overshoot.", "Compare overdrive settings in your OSD."]),
+    ];
+
+    private void Launch(MonitorMode mode)
+    {
+        _stageMode = mode;
+        _stageTitle = _tabs.First(t => t.Mode == mode).Name;
+    }
+
+    private void CloseStage() => _stageMode = null;
+
+    private async Task MeasureRefresh()
+    {
+        _measuring = true;
+        try { _stats = await Orch.MeasureRefreshAsync(_expectedHz); }
+        catch { _stats = null; }
+        finally { _measuring = false; }
+    }
+
+    private string Compliance(double measured)
+    {
+        if (measured <= 0) return "-";
+        double ratio = measured / _expectedHz;
+        return ratio >= 0.97 ? "Compliant" : ratio >= 0.85 ? "Slightly low" : "Below rated";
+    }
+}

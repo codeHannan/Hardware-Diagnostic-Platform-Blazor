@@ -1,0 +1,43 @@
+@page "/"
+
+<PageTitle>BenchRig | Dashboard</PageTitle>
+
+<section class="hero glass fade-in">
+    <div class="hero-copy">
+        <span class="badge">Client-side diagnostics</span>
+        <h1>Benchmark every part of your rig.</h1>
+        <p>Run network, mouse, keyboard, audio, monitor, and compute diagnostics right in your browser. No installs, no drivers. Compile the results into a shareable report.</p>
+        <div class="hero-cta">
+            <a class="btn btn-primary" href="@AppRoutes.Network">Start a diagnostic</a>
+            <a class="btn btn-ghost" href="@AppRoutes.Report">View report</a>
+        </div>
+    </div>
+    <div class="hero-orb"></div>
+</section>
+
+<h2 class="section-title">Diagnostic suites</h2>
+<div class="grid grid-auto">
+    @foreach (var t in _tiles)
+    {
+        <a class="tile fade-in" href="@t.Route">
+            <span class="tile-icon svg-icon @t.Icon"></span>
+            <span class="tile-name">@t.Name</span>
+            <span class="tile-desc">@t.Desc</span>
+            <span class="tile-go">Open →</span>
+        </a>
+    }
+</div>
+
+@code {
+    private record Tile(string Name, string Desc, string Route, string Icon);
+
+    private readonly Tile[] _tiles =
+    [
+        new("Network", "Speed, latency, jitter, packet loss & stress.", AppRoutes.Network, "ico-network"),
+        new("Mouse", "CPS, polling rate, DPI, accuracy & jitter.", AppRoutes.Mouse, "ico-mouse"),
+        new("Keyboard", "Key registration, chatter, rollover & typing.", AppRoutes.Keyboard, "ico-keyboard"),
+        new("Audio", "Channel routing, balance, mic loopback & echo.", AppRoutes.Audio, "ico-audio"),
+        new("Monitor", "Dead pixels, gradients, ghosting & refresh.", AppRoutes.Monitor, "ico-monitor"),
+        new("Compute", "CPU & GPU benchmark with live scoring.", AppRoutes.Compute, "ico-compute"),
+    ];
+}

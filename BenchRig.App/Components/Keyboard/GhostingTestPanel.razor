@@ -1,0 +1,62 @@
+<div class="card">
+    <div class="panel-head">
+        <h3>Ghosting Test</h3>
+        <button class="btn btn-ghost" @onclick="Reset">Reset</button>
+    </div>
+
+    <div class="kbd-focusbar @(_focused ? "active" : "")">
+        <span><span class="kbd-dot"></span> @(_focused ? $"{_held.Count} keys registering simultaneously" : "Click the keyboard, then hold a combo")</span>
+    </div>
+
+    <div class="kbd-capture" tabindex="0" @ref="_el"
+         @onkeydown="OnDown" @onkeyup="OnUp" @onkeydown:preventDefault="true"
+         @onfocus="() => _focused = true" @onblur="() => _focused = false" @onclick="Focus">
+        <div class="keyboard">
+            @foreach (var row in KeyboardLayout.Rows)
+            {
+                <div class="krow">
+                    @foreach (var k in row)
+                    {
+                        <span class="kcap @(_held.Contains(k.Code) ? "down" : "")" style="flex-grow:@k.Width">@k.Label</span>
+                    }
+                </div>
+            }
+            <div class="kbd-arrows">
+                @foreach (var row in KeyboardLayout.ArrowRows)
+                {
+                    <div class="krow" style="justify-content:center">
+                        @foreach (var k in row)
+                        {
+                            <span class="kcap @(_held.Contains(k.Code) ? "down" : "")">@k.Label</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <p class="muted" style="margin-top:.8rem">
+        Hold several keys together. Every key you physically press <b>should</b> light up — if one doesn't,
+        your keyboard is ghosting (blocking) that combination. Try these common gaming combos:
+    </p>
+    <div class="chip-list">
+        <span class="keychip">W + A + Space</span>
+        <span class="keychip">W + D + Space</span>
+        <span class="keychip">Shift + W + A + D</span>
+        <span class="keychip">Ctrl + Shift + ↑ + →</span>
+    </div>
+</div>
+
+@code {
+    private ElementReference _el;
+    private bool _focused, _autofocused;
+    private readonly HashSet<string> _held = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    { if (firstRender && !_autofocused) { _autofocused = true; try { await _el.FocusAsync(); } catch { } } }
+    private async Task Focus() { try { await _el.FocusAsync(); } catch { } }
+
+    private void OnDown(KeyboardEventArgs e) { if (!string.IsNullOrEmpty(e.Code)) _held.Add(e.Code); }
+    private void OnUp(KeyboardEventArgs e) => _held.Remove(e.Code);
+    private void Reset() => _held.Clear();
+}

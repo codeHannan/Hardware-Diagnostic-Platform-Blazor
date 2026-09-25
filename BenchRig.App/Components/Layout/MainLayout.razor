@@ -1,0 +1,34 @@
+@inherits LayoutComponentBase
+@using BenchRig.App.Components.Chatbot
+@inject AuthService AuthSvc
+
+<div class="app-shell @(_navOpen ? "nav-open" : "")">
+    <Sidebar Open="_navOpen" OnNavigate="CloseNav" />
+    <div class="nav-backdrop" @onclick="CloseNav"></div>
+    <div class="app-main">
+        <Topbar OnMenu="ToggleNav" />
+        <main class="app-content">
+            @Body
+            <FooterBar />
+        </main>
+    </div>
+    <ChatBubble />
+</div>
+
+@code {
+    private bool _authInitialized;
+    private bool _navOpen;
+
+    private void ToggleNav() => _navOpen = !_navOpen;
+    private void CloseNav() => _navOpen = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_authInitialized)
+        {
+            _authInitialized = true;
+            try { await AuthSvc.InitializeAsync(); }
+            catch { /* Firebase unavailable - app still works for local diagnostics */ }
+        }
+    }
+}

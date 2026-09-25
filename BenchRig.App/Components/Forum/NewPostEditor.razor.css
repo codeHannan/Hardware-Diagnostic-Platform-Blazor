@@ -1,0 +1,17 @@
+.npe-count { text-align: right; font-size: .72rem; color: var(--text-2); margin-top: .2rem; font-family: var(--mono); }
+.npe-lbl { margin-top: .8rem; display: block; }
+.npe-body-head { display: flex; align-items: center; justify-content: space-between; margin-top: .8rem; }
+.npe-body-head label { margin: 0; }
+.npe-toggle {
+    background: var(--surface-1); border: 1px solid var(--border); color: var(--text-1);
+    font-size: .74rem; font-weight: 600; padding: .22rem .65rem; border-radius: var(--r-pill); cursor: pointer;
+    transition: all .12s ease;
+}
+.npe-toggle:hover { border-color: var(--accent); color: var(--cream); }
+.npe-toggle.on { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--text-on-accent); border-color: transparent; }
+.npe-preview {
+    margin-top: .3rem; min-height: 120px; padding: .8rem 1rem;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.npe-submit { margin-top: 1rem; }
+.npe-ok { color: var(--ok); font-size: .84rem; font-weight: 600; margin: .8rem 0 0; }

@@ -1,0 +1,268 @@
+@page "/admin/solutions"
+@inject IJsFirestoreBridge Firestore
+@inject AuthStateContainer Auth
+@implements IDisposable
+
+<PageTitle>Admin · Articles - BenchRig</PageTitle>
+
+@if (!Auth.IsInitialized)
+{
+    <LoadingSpinner Text="Checking access..." />
+}
+else if (!Auth.IsAdmin)
+{
+    <div class="card"><h2>Access denied</h2></div>
+}
+else
+{
+    <div class="page-intro">
+        <h1>Knowledge Base Editor</h1>
+        <p>Create, publish, and manage solution articles.</p>
+    </div>
+
+    <div class="kb-admin">
+        <div class="kb-admin-list">
+            <div class="kb-admin-listhead">
+                <input class="input" @bind="_listSearch" @bind:event="oninput" placeholder="Filter articles…" />
+                <span class="muted kb-admin-stats">@_articles.Count(a => a.IsPublished) published · @_articles.Count(a => !a.IsPublished) draft</span>
+            </div>
+
+            @if (_articles.Count == 0)
+            {
+                <div class="card"><p class="muted">No articles yet. Create your first one →</p></div>
+            }
+            else if (VisibleArticles.Count == 0)
+            {
+                <div class="card"><p class="muted">No articles match “@_listSearch”.</p></div>
+            }
+            else
+            {
+                @foreach (var a in VisibleArticles)
+                {
+                    <div class="card kb-admin-item @(_editId == a.Id ? "editing" : "")">
+                        <div class="kb-admin-item-head">
+                            <div class="kb-admin-badges">
+                                <span class="badge">@a.Category</span>
+                                <span class="badge @(a.IsPublished ? "badge-ok" : "badge-warn")">@(a.IsPublished ? "published" : "draft")</span>
+                                @if (a.UpdatedAt is { } u) { <span class="muted kb-admin-date">@u.ToLocalTime().ToString("MMM d, yyyy")</span> }
+                            </div>
+                        </div>
+                        <h3 class="kb-admin-title">@a.Title</h3>
+                        @if (a.Tags.Count > 0)
+                        {
+                            <div class="chip-list">@foreach (var t in a.Tags) { <span class="keychip">#@t</span> }</div>
+                        }
+                        <div class="kb-admin-actions">
+                            <button class="btn btn-ghost btn-sm" @onclick="() => Edit(a)">Edit</button>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => TogglePublish(a)">@(a.IsPublished ? "Unpublish" : "Publish")</button>
+                            @if (_confirmDeleteId == a.Id)
+                            {
+                                <span class="kb-admin-confirm">Delete?</span>
+                                <button class="btn btn-sm kb-del" @onclick="() => Delete(a)">Yes</button>
+                                <button class="btn btn-ghost btn-sm" @onclick="() => _confirmDeleteId = null">No</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-ghost btn-sm kb-del-trigger" @onclick="() => _confirmDeleteId = a.Id">Delete</button>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="kb-admin-editor">
+            <div class="card">
+                <div class="panel-head">
+                    <h3>@(_editId is null ? "New article" : "Edit article")</h3>
+                    @if (_editId is not null) { <span class="badge badge-warn">editing</span> }
+                </div>
+
+                <label>Title</label>
+                <input class="input" @bind="_title" maxlength="200" placeholder="e.g. Fixing high mouse latency" />
+
+                <label class="kb-lbl">Category <span class="muted">(pick one or type your own)</span></label>
+                <input class="input" @bind="_category" list="kb-cat-list" placeholder="e.g. network, or a custom category" />
+                <datalist id="kb-cat-list">
+                    @foreach (var c in _categories) { <option value="@c" /> }
+                </datalist>
+
+                <label class="kb-lbl">Tags <span class="muted">(comma-separated)</span></label>
+                <input class="input" @bind="_tags" placeholder="polling-rate, usb, drivers" />
+                @if (PreviewTags.Length > 0)
+                {
+                    <div class="chip-list">@foreach (var t in PreviewTags) { <span class="keychip">#@t</span> }</div>
+                }
+
+                <div class="kb-body-head">
+                    <label class="kb-lbl">Body <span class="muted">(markdown)</span></label>
+                    <button class="kb-toggle @(_showPreview ? "on" : "")" @onclick="() => _showPreview = !_showPreview">
+                        @(_showPreview ? "Edit" : "Preview")
+                    </button>
+                </div>
+                @if (_showPreview)
+                {
+                    <div class="kb-preview">
+                        @if (string.IsNullOrWhiteSpace(_body)) { <p class="muted">Nothing to preview yet.</p> }
+                        else { <MarkdownRenderer Content="@_body" /> }
+                    </div>
+                }
+                else
+                {
+                    <textarea class="textarea kb-body" @bind="_body" placeholder="Write the guide in markdown…"></textarea>
+                }
+
+                @if (_message is { } msg)
+                {
+                    <p class="kb-msg @(_messageOk ? "ok" : "bad")">@msg</p>
+                }
+
+                <div class="stat-row kb-editor-actions">
+                    <button class="btn btn-primary" disabled="@(_busy || !CanSave)" @onclick="Save">
+                        @(_busy ? "Saving…" : _editId is null ? "Create draft" : "Save changes")
+                    </button>
+                    @if (_editId is not null)
+                    {
+                        <button class="btn btn-ghost" @onclick="ResetForm">Cancel</button>
+                    }
+                </div>
+                <p class="muted kb-hint">New articles start as <b>drafts</b>. Publish them from the list to make them public.</p>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private sealed record ArticleDto
+    {
+        public string Id { get; init; } = "";
+        public string Title { get; init; } = "";
+        public string Body { get; init; } = "";
+        public string Category { get; init; } = "general";
+        public IReadOnlyList<string> Tags { get; init; } = [];
+        public bool IsPublished { get; init; }
+        public DateTime? UpdatedAt { get; init; }
+    }
+
+    private List<ArticleDto> _articles = new();
+    private readonly string[] _categories = ["network", "mouse", "keyboard", "audio", "monitor", "compute", "general"];
+
+    private string _listSearch = "";
+    private string? _editId;
+    private string _title = "";
+    private string _body = "";
+    private string _category = "general";
+    private string _tags = "";
+    private bool _busy;
+    private bool _showPreview;
+    private string? _confirmDeleteId;
+    private string? _message;
+    private bool _messageOk;
+
+    private bool CanSave => !string.IsNullOrWhiteSpace(_title) && !string.IsNullOrWhiteSpace(_body);
+
+    private string[] PreviewTags => ParseTags(_tags);
+
+    private List<ArticleDto> VisibleArticles => string.IsNullOrWhiteSpace(_listSearch)
+        ? _articles.OrderByDescending(a => a.UpdatedAt ?? DateTime.MinValue).ToList()
+        : _articles
+            .Where(a => a.Title.Contains(_listSearch, StringComparison.OrdinalIgnoreCase)
+                     || a.Tags.Any(t => t.Contains(_listSearch, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(a => a.UpdatedAt ?? DateTime.MinValue).ToList();
+
+    protected override void OnInitialized() => Auth.OnChange += StateHasChanged;
+    public void Dispose() => Auth.OnChange -= StateHasChanged;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        try { _articles = await Firestore.QueryCollectionAsync<ArticleDto>(FirestoreCollections.SolutionArticles); }
+        catch { _articles = new(); }
+    }
+
+    private void Edit(ArticleDto a)
+    {
+        _editId = a.Id; _title = a.Title; _body = a.Body; _category = a.Category;
+        _tags = string.Join(", ", a.Tags);
+        _showPreview = false; _confirmDeleteId = null; _message = null;
+    }
+
+    private void ResetForm()
+    {
+        _editId = null; _title = _body = _tags = ""; _category = "general";
+        _showPreview = false; _message = null;
+    }
+
+    private static string[] ParseTags(string raw) => raw
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(t => t.ToLowerInvariant())
+        .Distinct()
+        .Take(10)
+        .ToArray();
+
+    // Admin may type any category; normalize so grouping/filtering on the public KB stays tidy.
+    private static string NormCategory(string c) =>
+        string.IsNullOrWhiteSpace(c) ? "general" : c.Trim().ToLowerInvariant();
+
+    private async Task Save()
+    {
+        if (!CanSave) return;
+        _busy = true; _message = null;
+        try
+        {
+            var user = Auth.CurrentUser!;
+            var isNew = _editId is null;
+            if (isNew)
+            {
+                await Firestore.AddDocumentAsync(FirestoreCollections.SolutionArticles, new
+                {
+                    title = _title.Trim(), body = _body.Trim(), category = NormCategory(_category),
+                    tags = ParseTags(_tags), authorUid = user.Uid, authorName = user.DisplayName,
+                    isPublished = false, updatedAt = DateTime.UtcNow.ToString("o"),
+                });
+            }
+            else
+            {
+                await Firestore.UpdateDocumentAsync(FirestoreCollections.Article(_editId!), new
+                {
+                    title = _title.Trim(), body = _body.Trim(), category = NormCategory(_category),
+                    tags = ParseTags(_tags),
+                });
+            }
+            ResetForm();
+            await Load();
+            // Set the confirmation AFTER ResetForm (which clears _message) so it actually shows.
+            SetMessage(isNew ? "Draft created. Publish it from the list when ready." : "Changes saved.", true);
+        }
+        catch
+        {
+            SetMessage("Couldn't save. The database didn't respond, so please try again.", false);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task TogglePublish(ArticleDto a)
+    {
+        try
+        {
+            await Firestore.UpdateDocumentAsync(FirestoreCollections.Article(a.Id), new { isPublished = !a.IsPublished });
+            await Load();
+        }
+        catch { SetMessage("Couldn't update publish state.", false); }
+    }
+
+    private async Task Delete(ArticleDto a)
+    {
+        _confirmDeleteId = null;
+        try
+        {
+            await Firestore.DeleteDocumentAsync(FirestoreCollections.Article(a.Id));
+            if (_editId == a.Id) ResetForm();
+            await Load();
+        }
+        catch { SetMessage("Couldn't delete the article.", false); }
+    }
+
+    private void SetMessage(string msg, bool ok) { _message = msg; _messageOk = ok; }
+}

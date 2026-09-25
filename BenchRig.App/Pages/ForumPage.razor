@@ -1,0 +1,210 @@
+@page "/forum"
+@using BenchRig.App.Components.Forum
+@inject IJsFirestoreBridge Firestore
+@inject ForumState State
+@inject AuthStateContainer Auth
+@implements IDisposable
+
+<PageTitle>Community Forum | BenchRig</PageTitle>
+
+<div class="page-intro">
+    <h1>Community Forum</h1>
+    <p>Ask questions, share fixes, and compare diagnostic results with other users.</p>
+</div>
+
+<div class="forum-layout">
+    <div class="forum-main">
+        <div class="forum-toolbar">
+            <input class="input forum-search" @bind="_search" @bind:event="oninput" @bind:after="ResetPaging" placeholder="Search title, body, or tags…" />
+            <select class="select" @bind="_sort" @bind:after="ResetPaging" style="width:auto">
+                <option value="newest">Newest</option>
+                <option value="active">Recently active</option>
+                <option value="top">Top rated</option>
+                <option value="discussed">Most discussed</option>
+            </select>
+            <button class="btn btn-ghost" @onclick="Load" disabled="@State.IsLoading">↻ Refresh</button>
+        </div>
+
+        @if (Auth.IsLoggedIn)
+        {
+            <div class="forum-tags">
+                <button class="ftag @(_mineOnly ? "on" : "")" @onclick="ToggleMine">@(_mineOnly ? "✓ " : "")My posts</button>
+            </div>
+        }
+
+        @if (_allTags.Count > 0)
+        {
+            <div class="forum-tags">
+                <button class="ftag @(_tag is null ? "on" : "")" @onclick="() => SetTag(null)">All tags</button>
+                @foreach (var t in _allTags)
+                {
+                    <button class="ftag @(_tag == t ? "on" : "")" @onclick="() => SetTag(t)">#@t</button>
+                }
+            </div>
+        }
+
+        <div class="forum-feed">
+            @if (State.IsLoading)
+            {
+                <LoadingSpinner Text="Loading posts…" />
+            }
+            else if (State.Error is { } err)
+            {
+                <ConnectionError Message="@err" OnRetry="Load" />
+            }
+            else if (Filtered.Count == 0)
+            {
+                <div class="card">
+                    <p class="muted">@(State.Posts.Count == 0 ? "No posts yet. Be the first to start a discussion!" : "No posts match your filters.")</p>
+                    @if (State.Posts.Count > 0 && HasActiveFilters)
+                    {
+                        <button class="btn btn-ghost" @onclick="ResetFilters">Clear filters</button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="forum-countrow">
+                    <p class="muted forum-count">Showing @Shown.Count of @Filtered.Count post@(Filtered.Count == 1 ? "" : "s")</p>
+                    @if (HasActiveFilters)
+                    {
+                        <button class="forum-reset" @onclick="ResetFilters">Clear filters</button>
+                    }
+                </div>
+                @foreach (var post in Shown)
+                {
+                    <ForumPostCard Post="post" />
+                }
+                @if (Filtered.Count > _visibleCount)
+                {
+                    <button class="btn btn-ghost forum-more" @onclick="LoadMore">Load more (@(Filtered.Count - _visibleCount) more)</button>
+                }
+            }
+        </div>
+    </div>
+    <div class="forum-side">
+        <NewPostEditor OnPosted="Load" />
+    </div>
+</div>
+
+@code {
+    private sealed record RatingDto { public int Stars { get; init; } }
+
+    private string _search = "";
+    private string _sort = "newest";
+    private string? _tag;
+    private bool _mineOnly;
+    private int _visibleCount = PageSize;
+
+    private const int PageSize = 10;
+    private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
+
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+        Auth.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+        Auth.OnChange -= StateHasChanged;
+    }
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private List<string> _allTags => State.Posts
+        .SelectMany(p => p.Tags).Where(t => !string.IsNullOrWhiteSpace(t))
+        .Select(t => t.ToLowerInvariant()).Distinct().OrderBy(t => t).Take(14).ToList();
+
+    private bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(_search) || _tag is not null || _mineOnly;
+
+    private List<ForumPost> Filtered
+    {
+        get
+        {
+            IEnumerable<ForumPost> q = State.Posts;
+            if (_mineOnly && Auth.CurrentUser is not null)
+                q = q.Where(p => p.AuthorUid == Auth.CurrentUser.Uid);
+            if (_tag is not null)
+                q = q.Where(p => p.Tags.Any(t => string.Equals(t, _tag, OIC)));
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim();
+                q = q.Where(p => p.Title.Contains(s, OIC)
+                              || p.Body.Contains(s, OIC)
+                              || p.Tags.Any(t => t.Contains(s, OIC)));
+            }
+            q = _sort switch
+            {
+                "active" => q.OrderByDescending(p => p.UpdatedAt),
+                "top" => q.OrderByDescending(p => p.AvgRating).ThenByDescending(p => p.RatingCount),
+                "discussed" => q.OrderByDescending(p => p.CommentCount).ThenByDescending(p => p.CreatedAt),
+                _ => q.OrderByDescending(p => p.CreatedAt),
+            };
+            return q.ToList();
+        }
+    }
+
+    private List<ForumPost> Shown => Filtered.Take(_visibleCount).ToList();
+
+    private void ResetPaging() => _visibleCount = PageSize;
+    private void LoadMore() => _visibleCount += PageSize;
+    private void SetTag(string? tag) { _tag = tag; ResetPaging(); }
+    private void ToggleMine() { _mineOnly = !_mineOnly; ResetPaging(); }
+    private void ResetFilters() { _search = ""; _tag = null; _mineOnly = false; ResetPaging(); }
+
+    private async Task Load()
+    {
+        State.SetLoading(true);
+        _visibleCount = PageSize;
+        try
+        {
+            var posts = await Firestore.QueryCollectionAsync<ForumPost>(
+                FirestoreCollections.ForumPosts,
+                new QueryFilter { OrderByField = "createdAt", OrderDir = "desc", LimitCount = 100 });
+            State.SetPosts(posts);          // fast first paint with stored values
+            await EnrichAsync(posts);       // then real comment/rating aggregates
+        }
+        catch (Exception ex)
+        {
+            State.SetError(Friendly(ex.Message));
+        }
+    }
+
+    // The post's stored avgRating/commentCount never change (rules forbid non-authors writing them),
+    // so compute them live from the subcollections — this makes Top/Most-discussed sorts meaningful.
+    private async Task EnrichAsync(IReadOnlyList<ForumPost> posts)
+    {
+        if (posts.Count == 0) return;
+        try
+        {
+            var enriched = await Task.WhenAll(posts.Select(EnrichOne));
+            State.SetPosts(enriched);
+        }
+        catch { /* keep stored values on failure */ }
+    }
+
+    private async Task<ForumPost> EnrichOne(ForumPost p)
+    {
+        try
+        {
+            var commentCountTask = Firestore.CountCollectionAsync(FirestoreCollections.CommentsOf(p.Id));
+            var ratings = await Firestore.QueryCollectionAsync<RatingDto>(FirestoreCollections.RatingsOf(p.Id));
+            var commentCount = await commentCountTask;
+            return p with
+            {
+                CommentCount = commentCount,
+                RatingCount = ratings.Count,
+                AvgRating = ratings.Count > 0 ? ratings.Average(r => r.Stars) : 0,
+            };
+        }
+        catch { return p; }
+    }
+
+    private static string Friendly(string msg)
+        => msg.Contains("UNREACHABLE", StringComparison.OrdinalIgnoreCase) || msg.Contains("timed out", StringComparison.OrdinalIgnoreCase)
+            ? "The Firestore database didn't respond in time."
+            : "Couldn't load posts from Firestore.";
+}
